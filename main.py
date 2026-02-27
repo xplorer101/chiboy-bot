@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 CHIBOY BOT - Main Entry Point
 ===================================
