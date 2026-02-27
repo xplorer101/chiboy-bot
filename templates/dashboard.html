@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0d1117">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230d1117' width='100' height='100' rx='20'/><text y='.9em' x='50%' text-anchor='middle' font-size='70'>📈</text></svg>">
+    <title>CHIBOY BOT</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --bg-card: #161b22;
+            --bg-card-hover: #1c2128;
+            --border-color: #30363d;
+            --text-primary: #ffffff;
+            --text-secondary: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent-green: #3fb950;
+            --accent-red: #f85149;
+            --accent-blue: #58a6ff;
+            --accent-purple: #a371f7;
+            --accent-gold: #f0b429;
+            --accent-cyan: #39d0d6;
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            padding-left: 80px; /* Sidebar width */
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 80px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem 0;
+            z-index: 1000;
+        }
+        
+        .sidebar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+            margin-bottom: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .sidebar-brand i { font-size: 1.8rem; }
+        .sidebar-brand span { font-size: 0.7rem; margin-top: 0.25rem; }
+        
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            flex: 1;
+        }
+        
+        .sidebar-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 0.75rem 0.5rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-size: 0.7rem;
+            width: 70px;
+        }
+        
+        .sidebar-link i { font-size: 1.3rem; margin-bottom: 0.25rem; }
+        
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-primary);
+        }
+        
+        .sidebar-link.active {
+            background: var(--accent-gold);
+            color: #000;
+        }
+        
+        .sidebar-footer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem 0;
+        }
+        
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .refresh-btn {
+            background: var(--bg-card-hover);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .refresh-btn:hover {
+            border-color: var(--accent-gold);
+            color: var(--text-primary);
+        }
+        
+        /* Main Content */
+        .main-content {
+            padding-bottom: 80px;
+        }
+        
+        .navbar {
+            background: linear-gradient(180deg, #1a1f26 0%, var(--bg-card) 100%);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.75rem 0;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-link {
+            color: var(--text-secondary) !important;
+            font-weight: 500;
+            padding: 0.5rem 1rem !important;
+            border-radius: 6px;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .navbar-nav {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+        
+        .navbar-collapse {
+            justify-content: center;
+        }
+        
+        .nav-pills .nav-link {
+            border-radius: 6px;
+            background: transparent;
+        }
+        
+        .nav-pills .nav-link.active {
+            background: var(--accent-gold) !important;
+            color: #000 !important;
+        }
+        
+        .nav-pills .nav-link:hover:not(.active) {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            color: var(--text-primary) !important;
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+        
+        .card-header {
+            background: transparent;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 1.25rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(255,255,255,0.02) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            position: relative;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-gold), var(--accent-cyan));
+        }
+        
+        .stat-card.green::before { background: var(--accent-green); }
+        .stat-card.red::before { background: var(--accent-red); }
+        .stat-card.blue::before { background: var(--accent-blue); }
+        .stat-card.purple::before { background: var(--accent-purple); }
+        
+        .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--text-primary); }
+        .stat-label { color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.25rem; }
+        
+        .opportunity-card {
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            background: var(--bg-card);
+            transition: all 0.2s;
+        }
+        
+        .opportunity-card:hover {
+            transform: translateX(4px);
+            border-color: var(--accent-gold);
+        }
+        
+        .opportunity-card.selected {
+            border-color: var(--accent-cyan);
+            background: rgba(57, 208, 214, 0.1);
+        }
+        
+        .direction-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        
+        .direction-long { background: rgba(63, 185, 80, 0.15); color: var(--accent-green); }
+        .direction-short { background: rgba(248, 81, 73, 0.15); color: var(--accent-red); }
+        
+        .symbol-name { font-weight: 700; font-size: 1.15rem; color: var(--text-primary); }
+        .symbol-type { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
+        .live-price { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 600; color: var(--accent-blue); }
+        .price-entry { color: var(--accent-gold); }
+        .price-sl { color: var(--accent-red); }
+        .price-tp { color: var(--accent-green); }
+        
+        .confidence-bar { height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden; margin-top: 0.5rem; }
+        .confidence-fill { height: 100%; border-radius: 3px; }
+        
+        .chart-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; }
+        .chart-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 1rem; }
+        .chart-controls { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        
+        .timeframe-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        
+        .timeframe-btn:hover { border-color: var(--accent-gold); color: var(--text-primary); }
+        .timeframe-btn.active { background: var(--accent-gold); border-color: var(--accent-gold); color: #000; }
+        
+        #chart { width: 100%; height: 400px; }
+        
+        .price-ticker { display: flex; align-items: center; gap: 0.5rem; font-family: 'JetBrains Mono', monospace; }
+        .ticker-change { font-size: 0.85rem; padding: 0.2rem 0.5rem; border-radius: 4px; }
+        .ticker-change.up { background: rgba(63, 185, 80, 0.15); color: var(--accent-green); }
+        .ticker-change.down { background: rgba(248, 81, 73, 0.15); color: var(--accent-red); }
+        
+        .btn-primary { background: linear-gradient(135deg, var(--accent-gold), #d4a029); border: none; color: #000; font-weight: 600; }
+        .btn-outline { border: 1px solid var(--border-color); color: var(--text-secondary); }
+        .btn-outline:hover { background: rgba(255,255,255,0.05); border-color: var(--accent-gold); color: var(--text-primary); }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .live-indicator { animation: pulse 2s infinite; }
+        
+        .symbol-select { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.5rem 1rem; border-radius: 8px; min-width: 200px; }
+        .symbol-select:focus { outline: none; border-color: var(--accent-gold); }
+        
+        .loading { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--text-secondary); }
+        
+        .ict-criteria { display: flex; flex-direction: column; gap: 0.5rem; }
+        .ict-step { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 6px; background: rgba(0,0,0,0.2); font-size: 0.85rem; }
+        .ict-step.met { background: rgba(63, 185, 80, 0.1); }
+        .ict-check { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; background: var(--accent-green); color: #000; }
+        .ict-label { color: var(--text-secondary); }
+        .ict-value { color: var(--text-primary); font-weight: 500; margin-left: auto; font-size: 0.8rem; }
+        
+        .poi-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+        .poi-tag { font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px; background: rgba(163, 113, 247, 0.15); color: var(--accent-purple); border: 1px solid rgba(163, 113, 247, 0.3); }
+        
+        @media (max-width: 768px) { 
+            body { padding-left: 0; padding-bottom: 60px; }
+            .sidebar { 
+                display: none; 
+            }
+            .mobile-bottom-nav {
+                display: flex !important;
+            }
+        }
+        
+        /* Mobile Bottom Nav */
+        .mobile-bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-color);
+            padding: 0.5rem;
+            justify-content: space-around;
+            z-index: 1000;
+        }
+        
+        .mobile-bottom-nav a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 0.5rem;
+            font-size: 0.7rem;
+            border-radius: 8px;
+        }
+        
+        .mobile-bottom-nav a.active { color: var(--accent-gold); }
+        .mobile-bottom-nav a i { font-size: 1.25rem; margin-bottom: 0.25rem; }
+        
+        .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border-color); padding: 0.5rem; z-index: 1000; }
+        @media (max-width: 768px) { .bottom-nav { display: flex; justify-content: space-around; } .navbar { padding-bottom: 0.5rem; } }
+        .bottom-nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); text-decoration: none; padding: 0.5rem; border-radius: 8px; font-size: 0.7rem; transition: all 0.2s; flex: 1; text-align: center; }
+        .bottom-nav-item i { font-size: 1.25rem; margin-bottom: 0.25rem; display: block; }
+        .bottom-nav-item span { display: block; }
+        .bottom-nav-item.active { color: var(--accent-gold); }
+        .bottom-nav-item:hover { background: rgba(255,255,255,0.05); }
+        
+        .detail-row { display: flex; flex-direction: column; }
+        .detail-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.15rem; }
+        .detail-value { font-size: 1rem; font-weight: 600; color: var(--text-primary); }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <i class="fas fa-chart-line"></i>
+            <span>CHIBOY</span>
+        </div>
+        <div class="sidebar-nav">
+            <a href="/" class="sidebar-link active">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/analysis" class="sidebar-link">
+                <i class="fas fa-search"></i>
+                <span>Analysis</span>
+            </a>
+            <a href="/trades" class="sidebar-link">
+                <i class="fas fa-history"></i>
+                <span>Trades</span>
+            </a>
+        </div>
+        <div class="sidebar-footer">
+            <span class="live-dot"></span>
+            <span style="font-size: 0.7rem; color: #8b949e;">Live</span>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="top-bar">
+            <button class="refresh-btn" onclick="refreshAnalysis(true); animateRefresh(this)">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="color: #8b949e; font-size: 0.8rem;">Auto</span>
+                <input type="checkbox" id="autoRefresh" checked onchange="toggleAutoRefresh()">
+            </div>
+            <span id="lastUpdate" style="color: #8b949e; font-size: 0.8rem;">Loading...</span>
+        </div>
+
+    <div class="container-fluid px-4 py-4">
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+                <div class="stat-card">
+                    <div class="d-flex justify-content-between">
+                        <div><div class="stat-value" id="totalOpportunities">0</div><div class="stat-label">Opportunities</div></div>
+                        <div style="color: var(--text-muted);"><i class="fas fa-bolt fa-lg"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="stat-card green">
+                    <div class="d-flex justify-content-between">
+                        <div><div class="stat-value" id="longSignals">0</div><div class="stat-label">Long Signals</div></div>
+                        <div style="color: var(--accent-green);"><i class="fas fa-arrow-up fa-lg"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="stat-card red">
+                    <div class="d-flex justify-content-between">
+                        <div><div class="stat-value" id="shortSignals">0</div><div class="stat-label">Short Signals</div></div>
+                        <div style="color: var(--accent-red);"><i class="fas fa-arrow-down fa-lg"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="stat-card purple">
+                    <div class="d-flex justify-content-between">
+                        <div><div class="stat-value" id="avgConfidence">0%</div><div class="stat-label">Avg Confidence</div></div>
+                        <div style="color: var(--accent-blue);"><i class="fas fa-percentage fa-lg"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <span><i class="fas fa-bullseye me-2 text-warning"></i>Trading Opportunities</span>
+                        <button class="btn btn-sm btn-outline" onclick="refreshAnalysis(); animateRefresh(this)"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <div class="card-body p-3" id="opportunitiesList">
+                        <div class="loading"><i class="fas fa-spinner fa-spin me-2"></i> Analyzing with ICT Strategy...</div>
+                    </div>
+                </div>
+                <div class="card mt-3" id="ictCard" style="display: none;">
+                    <div class="card-header"><span><i class="fas fa-filter me-2 text-info"></i>ICT Entry Criteria</span></div>
+                    <div class="card-body"><div class="ict-criteria" id="ictCriteria"></div></div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <select class="symbol-select" id="symbolSelect" onchange="selectSymbol(this.value)">
+                                <optgroup label="Forex">
+                                    <option value="EUR_USD">EUR/USD</option>
+                                    <option value="GBP_USD" selected>GBP/USD</option>
+                                    <option value="USD_JPY">USD/JPY</option>
+                                    <option value="USD_CHF">USD/CHF</option>
+                                    <option value="AUD_USD">AUD/USD</option>
+                                    <option value="USD_CAD">USD/CAD</option>
+                                    <option value="EUR_GBP">EUR/GBP</option>
+                                    <option value="EUR_JPY">EUR/JPY</option>
+                                    <option value="GBP_JPY">GBP/JPY</option>
+                                    <option value="XAUUSD">XAU/USD (Gold)</option>
+                                </optgroup>
+                                <optgroup label="Indices">
+                                    <option value="NAS100">NAS100 (Nasdaq)</option>
+                                    <option value="SPX500">SPX500 (S&P)</option>
+                                    <option value="US30">US30 (Dow)</option>
+                                    <option value="USOIL">USOIL (Crude)</option>
+                                </optgroup>
+                                <optgroup label="Crypto">
+                                    <option value="BTCUSDT">BTC/USDT</option>
+                                    <option value="ETHUSDT">ETH/USDT</option>
+                                    <option value="SOLUSDT">SOL/USDT</option>
+                                </optgroup>
+                            </select>
+                            <div class="price-ticker">
+                                <span class="fs-4 fw-bold" id="currentPrice">---</span>
+                                <span class="ticker-change" id="priceChange">--</span>
+                            </div>
+                        </div>
+                        <div class="chart-controls">
+                            <button class="timeframe-btn" data-tf="1m" onclick="setTimeframe('1m')">1M</button>
+                            <button class="timeframe-btn" data-tf="5m" onclick="setTimeframe('5m')">5M</button>
+                            <button class="timeframe-btn" data-tf="15m" onclick="setTimeframe('15m')">15M</button>
+                            <button class="timeframe-btn active" data-tf="1h" onclick="setTimeframe('1h')">1H</button>
+                            <button class="timeframe-btn" data-tf="1D" onclick="setTimeframe('1D')">1D</button>
+                            <button class="timeframe-btn" data-tf="1W" onclick="setTimeframe('1W')">1W</button>
+                        </div>
+                    </div>
+                    <div id="chart"></div>
+                </div>
+
+                <div class="card mt-4" id="detailsCard" style="display: none;">
+                    <div class="card-header"><span><i class="fas fa-info-circle me-2 text-info"></i>Trade Details</span></div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-6 col-md-3"><div class="detail-row"><span class="detail-label">Direction</span><span class="detail-value" id="detailDirection">--</span></div></div>
+                            <div class="col-6 col-md-3"><div class="detail-row"><span class="detail-label">Entry Price</span><span class="detail-value price-entry" id="detailEntry">--</span></div></div>
+                            <div class="col-6 col-md-3"><div class="detail-row"><span class="detail-label">Stop Loss</span><span class="detail-value price-sl" id="detailSL">--</span></div></div>
+                            <div class="col-6 col-md-3"><div class="detail-row"><span class="detail-label">Take Profit</span><span class="detail-value price-tp" id="detailTP">--</span></div></div>
+                            <div class="col-6 col-md-3"><div class="detail-row"><span class="detail-label">Risk:Reward</span><span class="detail-value" id="detailRR">--</span></div></div>
+                            <div class="col-6 col-md-3"><div class="detail-row"><span class="detail-label">Timeframe</span><span class="detail-value" id="detailTimeframe">--</span></div></div>
+                            <div class="col-6 col-md-3"><div class="detail-row"><span class="detail-label">Confidence</span><span class="detail-value" id="detailConfidence">--</span></div></div>
+                            <div class="col-12"><div class="detail-label mb-1">Reasons</div><div id="detailReasons" class="detail-value" style="font-size: 0.9rem; line-height: 1.6;"></div></div>
+                        </div>
+                        <div class="mt-3" id="htfPoisSection">
+                            <div class="detail-label mb-2">Higher Timeframe Points of Interest</div>
+                            <div class="poi-tags" id="htfPois"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let chart, candleSeries;
+        let currentSymbol = 'GBP_USD';
+        let currentTimeframe = '1H';
+        let opportunities = [];
+
+        function initChart() {
+            const chartContainer = document.getElementById('chart');
+            chart = LightweightCharts.createChart(chartContainer, {
+                width: chartContainer.clientWidth, height: 400,
+                layout: { background: { type: 'solid', color: '#161b22' }, textColor: '#c9d1d9' },
+                grid: { vertLines: { color: '#30363d' }, horzLines: { color: '#30363d' } },
+                crosshair: { mode: LightweightCharts.CrosshairMode.Normal, vertLine: { color: '#f0b429', width: 1 }, horzLine: { color: '#f0b429', width: 1 } },
+                timeScale: { borderColor: '#30363d', timeVisible: true },
+                rightPriceScale: { borderColor: '#30363d' },
+            });
+            candleSeries = chart.addCandlestickSeries({ upColor: '#3fb950', downColor: '#f85149', borderUpColor: '#3fb950', borderDownColor: '#f85149', wickUpColor: '#3fb950', wickDownColor: '#f85149' });
+            window.addEventListener('resize', () => chart.applyOptions({ width: chartContainer.clientWidth }));
+        }
+
+        async function loadChartData(symbol, timeframe) {
+            console.log('loadChartData called:', symbol, timeframe);
+            try {
+                const response = await fetch(`/api/chart/${symbol}?timeframe=${timeframe}`);
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Data received, candles:', data.candles?.length);
+                if (data.candles && data.candles.length > 0) {
+                    console.log('Setting chart data...');
+                    candleSeries.setData(data.candles);
+                    chart.timeScale().fitContent();
+                    const lastCandle = data.candles[data.candles.length - 1];
+                    document.getElementById('currentPrice').textContent = formatPrice(lastCandle.close, symbol);
+                    const change = ((lastCandle.close - data.candles[0].close) / data.candles[0].close * 100).toFixed(2);
+                    const changeEl = document.getElementById('priceChange');
+                    changeEl.textContent = `${change > 0 ? '+' : ''}${change}%`;
+                    changeEl.className = `ticker-change ${change >= 0 ? 'up' : 'down'}`;
+                    console.log('Chart data set successfully!');
+                } else {
+                    console.log('No candles in response, generating demo data');
+                    generateDemoData(symbol, timeframe);
+                }
+            } catch(e) { 
+                console.error('Error loading chart:', e); 
+                generateDemoData(symbol, timeframe); 
+            }
+        }
+
+        function generateDemoData(symbol, timeframe) {
+            const candles = [], now = Math.floor(Date.now() / 1000);
+            const intervals = {'1M': 60, '5M': 300, '15M': 900, '1H': 3600, '1D': 86400, '1W': 604800};
+            const interval = intervals[timeframe] || 86400;
+            let basePrice = opportunities.find(o => o.symbol === symbol)?.opportunity.live_price || 2850;
+            for (let i = 200; i >= 0; i--) {
+                const time = now - (i * interval), volatility = basePrice * 0.02;
+                const close = basePrice + (Math.random() - 0.5) * volatility;
+                const open = close + (Math.random() - 0.5) * volatility * 0.5;
+                candles.push({ time, open: parseFloat(open.toFixed(2)), high: parseFloat((Math.max(open, close) + Math.random() * volatility * 0.5).toFixed(2)), low: parseFloat((Math.min(open, close) - Math.random() * volatility * 0.5).toFixed(2)), close: parseFloat(close.toFixed(2)) });
+                basePrice = close;
+            }
+            candleSeries.setData(candles);
+            chart.timeScale().fitContent();
+            document.getElementById('currentPrice').textContent = formatPrice(candles[candles.length-1].close, symbol);
+        }
+
+        function formatPrice(price, symbol) {
+            if (symbol === 'XAUUSD' || symbol.endsWith('USDT')) return price.toFixed(2);
+            return symbol.includes('JPY') ? price.toFixed(3) : price.toFixed(5);
+        }
+
+        function setTimeframe(tf) {
+            currentTimeframe = tf;
+            document.querySelectorAll('.timeframe-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tf === tf));
+            loadChartData(currentSymbol, tf);
+        }
+
+        async function loadOpportunities() {
+            try {
+                const response = await fetch('/api/analyze');
+                const data = await response.json();
+                opportunities = data.opportunities || [];
+                renderOpportunities();
+                updateStats();
+                if (opportunities.length > 0) selectSymbol(opportunities[0].symbol);
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+            } catch(e) { console.error(e); }
+        }
+
+        function renderOpportunities() {
+            const container = document.getElementById('opportunitiesList');
+            if (opportunities.length === 0) {
+                container.innerHTML = '<div class="text-center" style="color: var(--text-muted); padding: 2rem 1rem;">No valid ICT signals<br><small style="color: var(--text-secondary);">Waiting for: Liquidity Sweep → MSS → Order Block</small></div>';
+                return;
+            }
+            container.innerHTML = opportunities.map((opp, idx) => `
+                <div class="opportunity-card ${idx === 0 ? 'selected' : ''}" onclick="selectOpportunity(${idx})">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div><span class="symbol-name">${opp.symbol}</span><span class="symbol-type ms-2">${opp.type}</span></div>
+                        <span class="direction-badge direction-${opp.opportunity.direction}"><i class="fas fa-arrow-${opp.opportunity.direction === 'long' ? 'up' : 'down'}"></i> ${opp.opportunity.direction.toUpperCase()}</span>
+                    </div>
+                    <div class="mb-2"><span class="live-price">${formatPrice(opp.opportunity.live_price || opp.opportunity.entry_price, opp.symbol)}</span></div>
+                    <div class="d-flex justify-content-between mb-2" style="color: var(--text-muted); font-size: 0.85rem;">
+                        <span><span class="price-entry">E:</span> ${formatPrice(opp.opportunity.entry_price, opp.symbol)}</span>
+                        <span><span class="price-sl">SL:</span> ${formatPrice(opp.opportunity.stop_loss, opp.symbol)}</span>
+                        <span><span class="price-tp">TP:</span> ${formatPrice(opp.opportunity.take_profit, opp.symbol)}</span>
+                    </div>
+                    <div class="confidence-bar"><div class="confidence-fill" style="width: ${opp.opportunity.confidence}%; background: ${opp.opportunity.confidence >= 80 ? 'var(--accent-green)' : 'var(--accent-gold)'}"></div></div>
+                    <div class="d-flex justify-content-between mt-1" style="color: var(--text-muted); font-size: 0.8rem;"><span>${opp.timeframe}</span><span>R:R 1:${opp.opportunity.risk_reward}</span></div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            const longs = opportunities.filter(o => o.opportunity.direction === 'long').length;
+            const shorts = opportunities.filter(o => o.opportunity.direction === 'short').length;
+            const avgConf = opportunities.length > 0 ? Math.round(opportunities.reduce((s, o) => s + o.opportunity.confidence, 0) / opportunities.length) : 0;
+            document.getElementById('totalOpportunities').textContent = opportunities.length;
+            document.getElementById('longSignals').textContent = longs;
+            document.getElementById('shortSignals').textContent = shorts;
+            document.getElementById('avgConfidence').textContent = avgConf + '%';
+        }
+
+        function selectOpportunity(idx) {
+            const opp = opportunities[idx];
+            if (!opp) return;
+            document.querySelectorAll('.opportunity-card').forEach((c, i) => c.classList.toggle('selected', i === idx));
+            document.getElementById('symbolSelect').value = opp.symbol;
+            currentSymbol = opp.symbol;
+            showDetails(opp);
+            loadChartData(currentSymbol, currentTimeframe);
+        }
+
+        function selectSymbol(symbol) {
+            currentSymbol = symbol;
+            loadChartData(symbol, currentTimeframe);
+            const opp = opportunities.find(o => o.symbol === symbol);
+            if (opp) showDetails(opp);
+        }
+
+        function showDetails(opp) {
+            document.getElementById('detailsCard').style.display = 'block';
+            document.getElementById('detailDirection').innerHTML = `<span class="direction-badge direction-${opp.opportunity.direction}"><i class="fas fa-arrow-${opp.opportunity.direction === 'long' ? 'up' : 'down'}"></i> ${opp.opportunity.direction.toUpperCase()}</span>`;
+            document.getElementById('detailEntry').textContent = formatPrice(opp.opportunity.entry_price, opp.symbol);
+            document.getElementById('detailSL').textContent = formatPrice(opp.opportunity.stop_loss, opp.symbol);
+            document.getElementById('detailTP').textContent = formatPrice(opp.opportunity.take_profit, opp.symbol);
+            document.getElementById('detailRR').textContent = `1:${opp.opportunity.risk_reward}`;
+            document.getElementById('detailTimeframe').textContent = opp.timeframe;
+            document.getElementById('detailConfidence').textContent = opp.opportunity.confidence + '%';
+            document.getElementById('detailReasons').innerHTML = opp.opportunity.reasons.join('<br>');
+            
+            // Add Open Trade button
+            const detailsBody = document.querySelector('#detailsCard .card-body');
+            let btnSection = document.getElementById('openTradeBtn');
+            if (!btnSection) {
+                btnSection = document.createElement('div');
+                btnSection.id = 'openTradeBtn';
+                btnSection.style.marginTop = '1rem';
+                detailsBody.appendChild(btnSection);
+            }
+            btnSection.innerHTML = `
+                <div style="background: rgba(240, 180, 41, 0.15); border: 2px solid #f0b429; border-radius: 10px; padding: 1rem; margin-bottom: 1rem; text-align: center;">
+                    <div style="color: #f0b429; font-weight: 700; font-size: 1.2rem;">🔒 LIMIT ORDER</div>
+                    <div style="color: #fff; font-size: 1rem; margin-top: 0.5rem;">
+                        Entry: <span style="font-weight: 700;">${formatPrice(entry, symbol)}</span>
+                    </div>
+                </div>
+                <button id="executeTradeBtn" style="background: linear-gradient(135deg, #f0b429, #d4a029); border: none; color: #000; font-weight: 700; padding: 1rem; width: 100%; border-radius: 8px; font-size: 1rem; cursor: pointer;">
+                    <i class="fas fa-play me-2"></i>Execute Trade
+                </button>
+            `;
+            document.getElementById('executeTradeBtn').onclick = function() {
+                openTrade(opp.symbol, opp.opportunity.direction, opp.opportunity.entry_price, opp.opportunity.stop_loss, opp.opportunity.take_profit, opp.opportunity.risk_reward, opp.timeframe, opp.opportunity.reasons.join(', '));
+            };
+            
+            // ICT Criteria
+            const ictCard = document.getElementById('ictCard');
+            ictCard.style.display = 'block';
+            const c = opp.opportunity;
+            let html = '';
+            const pois = c.htf_pois || [];
+            html += `<div class="ict-step met"><div class="ict-check"><i class="fas fa-check"></i></div><span class="ict-label">HTF POI</span><span class="ict-value">${pois.length} found</span></div>`;
+            const liq = c.liquidity_sweep || {};
+            html += `<div class="ict-step ${liq.found ? 'met' : ''}"><div class="ict-check"><i class="fas fa-check"></i></div><span class="ict-label">Liquidity Sweep</span><span class="ict-value">${liq.found ? liq.swept_level || 'Swept' : 'Pending'}</span></div>`;
+            const mss = c.mss || {};
+            html += `<div class="ict-step ${mss.found ? 'met' : ''}"><div class="ict-check"><i class="fas fa-check"></i></div><span class="ict-label">MSS/BOS</span><span class="ict-value">${mss.found ? mss.type || 'Confirmed' : 'Pending'}</span></div>`;
+            const ob = c.order_block || {};
+            html += `<div class="ict-step ${ob.type ? 'met' : ''}"><div class="ict-check"><i class="fas fa-check"></i></div><span class="ict-label">Order Block</span><span class="ict-value">${ob.type || 'Pending'}</span></div>`;
+            document.getElementById('ictCriteria').innerHTML = html;
+            
+            // HTF POIs
+            const poisContainer = document.getElementById('htfPois');
+            poisContainer.innerHTML = pois.map(p => `<span class="poi-tag">${p.timeframe} ${p.type} ${p.direction}</span>`).join('');
+        }
+
+        function refreshAnalysis(force = false) {
+            fetch(force ? '/api/analyze?force=true' : '/api/analyze').then(r => r.json()).then(data => {
+                const prevCount = opportunities.length;
+                opportunities = data.opportunities || [];
+                renderOpportunities();
+                updateStats();
+                if (opportunities.length > 0) {
+                    selectSymbol(opportunities[0].symbol);
+                    if (prevCount === 0 && opportunities.length > 0) {
+                        notifySignal(opportunities[0]);
+                    }
+                }
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+            });
+        }
+
+        let autoRefreshInterval;
+        
+        function toggleAutoRefresh() {
+            const checkbox = document.getElementById('autoRefresh');
+            if (checkbox.checked) {
+                autoRefreshInterval = setInterval(() => refreshAnalysis(true), 15000);
+            } else {
+                clearInterval(autoRefreshInterval);
+            }
+        }
+        
+        function animateRefresh(btn) {
+            const icon = btn.querySelector('i');
+            icon.style.animation = 'none';
+            btn.offsetHeight;
+            icon.style.animation = 'spin 1s linear infinite';
+            setTimeout(() => { icon.style.animation = ''; }, 1000);
+        }
+
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        function notifySignal(opp) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('CHIBOY BOT - New Signal!', {
+                    body: `${opp.symbol}: ${opp.opportunity.direction.toUpperCase()} @ ${opp.opportunity.entry_price}\nR:R 1:${opp.opportunity.risk_reward}`,
+                    icon: '📈'
+                });
+            }
+            // Also show browser alert for important signals
+            if (opp.opportunity.confidence >= 85) {
+                // Already showing in UI, no need for alert
+            }
+        }
+
+        async function openTrade(symbol, direction, entry, sl, tp, rr, tf, reasons) {
+            try {
+                const response = await fetch('/api/trades/open', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol,
+                        direction,
+                        entry_price: entry,
+                        stop_loss: sl,
+                        take_profit: tp,
+                        risk_reward: rr,
+                        timeframe: tf,
+                        reasons: reasons.split(', ')
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert(`Trade opened for ${symbol} ${direction.toUpperCase()}!\n\nView in Trade History tab.`);
+                }
+            } catch (error) {
+                console.error('Error opening trade:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, initializing chart...');
+            initChart();
+            console.log('Chart initialized, loading opportunities...');
+            loadOpportunities();
+            // Load chart for default symbol - GBPUSD 1H
+            console.log('Loading chart data for GBP_USD 1H...');
+            loadChartData('GBP_USD', '1H').then(() => console.log('Chart data loaded!')).catch(e => console.error('Chart load error:', e));
+            setInterval(() => refreshAnalysis(true), 15000);
+        });
+    </script>
+    
+    <!-- Bottom Navigation for Mobile -->
+    <nav class="bottom-nav">
+        <a href="/" class="bottom-nav-item active" id="nav-dashboard">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="/analysis" class="bottom-nav-item" id="nav-analysis">
+            <i class="fas fa-search"></i>
+            <span>Analysis</span>
+        </a>
+        <a href="/trades" class="bottom-nav-item" id="nav-trades">
+            <i class="fas fa-history"></i>
+            <span>Trades</span>
+        </a>
+    </nav>
+<!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+        <a href="/" class="active">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="/analysis">
+            <i class="fas fa-search"></i>
+            <span>Analysis</span>
+        </a>
+        <a href="/trades">
+            <i class="fas fa-history"></i>
+            <span>Trades</span>
+        </a>
+    </nav>
+</body>
+</html>

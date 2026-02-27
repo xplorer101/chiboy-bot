@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0.0
+Name=ICT Trading Bot
+Comment=ICT Trading Bot - Forex & Crypto
+Exec=/usr/bin/ict-trading-bot
+Icon=ict-trading-bot
+Terminal=false
+Type=Application
+Categories=Finance;Trading;Python;
+Keywords=trading;forex;crypto;ict;bot;

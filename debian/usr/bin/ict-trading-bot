@@ -1,0 +1,12 @@
+#!/bin/bash
+# ICT Trading Bot Launcher
+
+SCRIPT_DIR="/usr/share/ict-trading-bot"
+
+# Check for virtual environment
+if [ -d "$SCRIPT_DIR/.venv/bin/python" ]; then
+    exec "$SCRIPT_DIR/.venv/bin/python" "$SCRIPT_DIR/gui_app.py"
+else
+    # Fallback to system Python
+    exec python3 "$SCRIPT_DIR/gui_app.py"
+fi

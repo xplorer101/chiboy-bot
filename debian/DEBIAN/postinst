@@ -1,0 +1,8 @@
+#!/bin/bash
+# Post-installation script
+
+echo "Installing ICT Trading Bot dependencies..."
+apt-get update -qq
+apt-get install -y -qq python3-pip python3-pyqt6 2>/dev/null || true
+
+echo "Installation complete!"
