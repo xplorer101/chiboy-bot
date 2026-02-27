@@ -377,6 +377,14 @@ def api_chart(symbol):
             yahoo_symbol = 'ETH-USD'
         elif symbol == 'SOLUSDT':
             yahoo_symbol = 'SOL-USD'
+        elif symbol == 'US30':
+            yahoo_symbol = '^DJI'
+        elif symbol == 'NAS100':
+            yahoo_symbol = '^IXIC'
+        elif symbol == 'SPX500':
+            yahoo_symbol = '^GSPC'
+        elif symbol == 'USOIL':
+            yahoo_symbol = 'CL=F'
         else:
             # Convert GBP_USD to GBPUSD=X
             yahoo_symbol = symbol.replace('_', '') + '=X'
@@ -589,6 +597,12 @@ def api_analyze_symbol_full(symbol):
             yahoo_symbol = 'BTC-USD'
         elif symbol == 'ETHUSDT':
             yahoo_symbol = 'ETH-USD'
+        elif symbol == 'US30':
+            yahoo_symbol = '^DJI'
+        elif symbol in ['NAS100', 'SPX500']:
+            yahoo_symbol = '^IXIC' if symbol == 'NAS100' else '^GSPC'
+        elif symbol == 'USOIL':
+            yahoo_symbol = 'CL=F'
         
         # Make a SINGLE call to get 1H data (most recent candles + current price)
         try:
