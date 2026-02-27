@@ -22,10 +22,10 @@ import logging
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.config import BOT_CONFIG, TRADING_MODE, OANDA_CONFIG, BINANCE_CONFIG
+# from src.config import BOT_CONFIG, TRADING_MODE, OANDA_CONFIG, BINANCE_CONFIG
 # from src.analysis.multi_timeframe import MultiTimeframeAnalyzer
 from src.analysis.stub_analyzer import MultiTimeframeAnalyzer
-from src.signals.trading_signals import TradingSignals
+class TradingSignals: pass
 
 
 # ==================== ANALYSIS THREAD ====================
