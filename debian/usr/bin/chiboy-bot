@@ -1,9 +1,4 @@
-#!/usr/bin/env python3
-import sys
-import os
-
-# Add the app directory to path
-sys.path.insert(0, '/usr/share/chiboy-bot')
-
-from webapp import app
-app.run(host='0.0.0.0', port=5000)
+#!/bin/bash
+# Launch CHIBOY BOT Web Interface
+echo "Starting CHIBOY BOT..."
+python3 -c "from webapp import app; app.run(host='0.0.0.0', port=5000)"

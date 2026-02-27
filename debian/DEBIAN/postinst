@@ -1,9 +1,8 @@
 #!/bin/bash
 # Post-installation script
 
-echo "Installing CHIBOY BOT dependencies..."
-apt-get update -qq
-apt-get install -y -qq python3-pip python3-venv
-pip3 install flask pandas numpy urllib3 2>/dev/null || true
+echo "Installing CHIBOY BOT..."
+mkdir -p /usr/share/chiboy-bot
+cp -r /var/lib/dpkg/info/chiboy-bot/usr/share/chiboy-bot/* /usr/share/chiboy-bot/ 2>/dev/null || true
 
 echo "CHIBOY BOT installed!"
