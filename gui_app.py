@@ -618,7 +618,7 @@ class CHIBOYTradingBotGUI(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("CHIBOY BOT")
-    app.setApplicationVersion(BOT_CONFIG["version"])
+    app.setApplicationVersion("1.0.0")
     
     window = CHIBOYTradingBotGUI()
     window.show()
