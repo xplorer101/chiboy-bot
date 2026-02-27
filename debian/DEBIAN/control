@@ -1,13 +1,13 @@
-Package: ict-trading-bot
+Package: chiboy-bot
 Version: 1.0.0
 Section: finance
 Priority: optional
 Architecture: all
-Depends: python3 (>= 3.10), python3-pip, python3-pyqt6
-Description: ICT Trading Bot with GUI
+Depends: python3 (>= 3.10), python3-pip
+Description: CHIBOY BOT - ICT Trading Bot
  A comprehensive trading bot implementing ICT (Inner Circle Trader) 
  concepts for forex and cryptocurrency markets. Features real-time 
  market analysis, liquidity detection, order blocks, and one-click 
  trade execution via a native desktop GUI.
-Homepage: https://github.com/ict-trading-bot
-Maintainer: ICT Trading Bot Team
+Homepage: https://github.com/xplorer101/chiboy-bot
+Maintainer: Chiboy Team

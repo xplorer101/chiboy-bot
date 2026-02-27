@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0.0
+Name=CHIBOY BOT
+Comment=CHIBOY Trading Bot - Forex & Crypto
+Exec=/usr/bin/chiboy-bot
+Icon=chiboy-bot
+Terminal=false
+Type=Application
+Categories=Finance;Trading;Python;
+Keywords=trading;forex;crypto;ict;bot;
