@@ -2,7 +2,7 @@
 Version=1.0.0
 Name=CHIBOY BOT
 Comment=CHIBOY Trading Bot - Forex & Crypto
-Exec=/usr/bin/chiboy-bot
+Exec=python3 /usr/share/chiboy-bot/webapp.py
 Icon=chiboy-bot
 Terminal=false
 Type=Application

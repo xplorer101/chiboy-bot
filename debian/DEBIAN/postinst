@@ -1,8 +1,11 @@
 #!/bin/bash
 # Post-installation script
 
-echo "Installing ICT Trading Bot dependencies..."
-apt-get update -qq
-apt-get install -y -qq python3-pip python3-pyqt6 2>/dev/null || true
+echo "Installing CHIBOY BOT..."
+# Create application directory
+mkdir -p /usr/share/chiboy-bot
 
-echo "Installation complete!"
+# Copy application files
+cp -r /usr/share/ict-trading-bot/* /usr/share/chiboy-bot/ 2>/dev/null || true
+
+echo "CHIBOY BOT installed!"
