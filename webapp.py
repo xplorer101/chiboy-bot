@@ -1373,6 +1373,12 @@ def trades_page():
     return render_template('trades.html')
 
 
+@app.route('/opportunities')
+def opportunities_page():
+    """Trading opportunities page"""
+    return render_template('opportunities.html')
+
+
 @app.route('/analysis')
 def analysis_page():
     """Trade analysis page"""
