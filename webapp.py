@@ -2,7 +2,7 @@
 CHIBOY BOT - Web Interface
 ================================
 Flask-based graphical user interface for the trading bot.
-ICT Trading Strategy Implementation
+ICT Trading Strategy Implementation - Professional Edition
 """
 
 import sys
@@ -14,13 +14,42 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for, f
 from functools import wraps
 import logging
 import threading
+from datetime import datetime, timedelta
 
-# ICT Analysis Functions
+# ICT Analysis Functions - Professional Implementation
+def detect_swing_points(highs, lows, lookback=5):
+    """Detect swing highs and lows"""
+    swing_highs = []
+    swing_lows = []
+    
+    for i in range(lookback, len(highs) - lookback):
+        # Swing high: higher than both neighbors
+        if highs[i] > highs[i-1] and highs[i] > highs[i-2] and highs[i] > highs[i+1] and highs[i] > highs[i+2]:
+            swing_highs.append({"price": highs[i], "index": i})
+        # Swing low: lower than both neighbors
+        if lows[i] < lows[i-1] and lows[i] < lows[i-2] and lows[i] < lows[i+1] and lows[i] < lows[i+2]:
+            swing_lows.append({"price": lows[i], "index": i})
+    
+    return {"swing_highs": swing_highs, "swing_lows": swing_lows}
+
+
+def detect_equal_levels(prices, tolerance=0.001):
+    """Detect equal highs or lows within tolerance"""
+    equal_levels = []
+    for i in range(len(prices)):
+        for j in range(i+1, len(prices)):
+            if abs(prices[i] - prices[j]) / prices[i] < tolerance:
+                level = (prices[i] + prices[j]) / 2
+                if level not in [e["price"] for e in equal_levels]:
+                    equal_levels.append({"price": level, "count": 2})
+    return equal_levels
+
+
 def detect_fvg(highs, lows, closes, index=-1):
     """
     Detect Fair Value Gap
-    Bearish FVG: current high < previous low (gap down)
     Bullish FVG: current low > previous high (gap up)
+    Bearish FVG: current high < previous low (gap down)
     """
     if index < -2 or len(closes) < 3:
         return None
@@ -30,11 +59,8 @@ def detect_fvg(highs, lows, closes, index=-1):
     if idx < 2 or idx >= len(closes):
         return None
     
-    # For bullish: low[index-1] > high[index-2] (gap up)
-    # For bearish: high[index-1] < low[index-2] (gap down)
-    
-    prev_low = lows[idx - 1] if idx > 0 else lows[0]
-    prev_high = highs[idx - 1] if idx > 0 else highs[0]
+    prev_low = lows[idx - 1]
+    prev_high = highs[idx - 1]
     curr_low = lows[idx]
     curr_high = highs[idx]
     
@@ -44,7 +70,8 @@ def detect_fvg(highs, lows, closes, index=-1):
             "type": "bullish",
             "top": curr_low,
             "bottom": prev_high,
-            "mid": (curr_low + prev_high) / 2
+            "mid": (curr_low + prev_high) / 2,
+            "index": idx
         }
     # Bearish FVG (gap down)
     elif curr_high < prev_low:
@@ -52,167 +79,428 @@ def detect_fvg(highs, lows, closes, index=-1):
             "type": "bearish",
             "top": prev_low,
             "bottom": curr_high,
-            "mid": (prev_low + curr_high) / 2
+            "mid": (prev_low + curr_high) / 2,
+            "index": idx
         }
     
     return None
 
 
-def detect_order_blocks(highs, lows, closes, lookback=10):
+def detect_order_block(highs, lows, closes, opens, direction="bullish"):
     """
-    Detect Order Blocks
-    Bullish OB: Bearish candle that broke structure, followed by upward move
-    Bearish OB: Bullish candle that broke structure, followed by downward move
+    Detect valid Order Block
+    Bullish OB: Bearish candle that broke structure up, then price pulled back
+    Bearish OB: Bullish candle that broke structure down, then price pulled back
     """
     order_blocks = []
     
-    for i in range(lookback, len(closes) - 1):
-        # Check if this is a break of structure candle
-        prev_high = max(highs[i-lookback:i])
-        prev_low = min(lows[i-lookback:i])
+    for i in range(10, len(closes) - 5):
+        is_bearish_candle = closes[i] < opens[i] if i < len(opens) else closes[i] < (highs[i] + lows[i]) / 2
+        is_bullish_candle = closes[i] > opens[i] if i < len(opens) else closes[i] > (highs[i] + lows[i]) / 2
         
-        # Bullish OB: price broke above previous high then pulled back
-        if highs[i] > prev_high and closes[i] > opens[i] if i < len(opens) else closes[i] > (highs[i] + lows[i]) / 2:
-            # Check if there's a retracement after
-            if i + 3 < len(closes):
-                retracement_low = min(lows[i:i+5])
-                if retracement_low > lows[i]:  # Pullback stayed above OB
+        # Get recent swing points
+        recent_highs = highs[max(0, i-15):i]
+        recent_lows = lows[max(0, i-15):i]
+        prev_swing_high = max(recent_highs) if recent_highs else highs[i]
+        prev_swing_low = min(recent_lows) if recent_lows else lows[i]
+        
+        if direction == "bullish":
+            # Bullish OB: Bearish candle broke above previous swing high, then pulled back
+            if is_bearish_candle and highs[i] > prev_swing_high:
+                # Check if price pulled back (retraced)
+                retracement_low = min(lows[i+1:i+5]) if i+5 <= len(lows) else lows[i]
+                if retracement_low > lows[i]:  # Pullback stays above OB
                     order_blocks.append({
                         "type": "bullish",
                         "index": i,
                         "high": highs[i],
                         "low": lows[i],
                         "close": closes[i],
-                        "price": lows[i]  # Entry at OB low
+                        "entry_price": lows[i],  # Entry at low of OB
+                        "stop_loss": lows[i] - (highs[i] - lows[i]),  # 1:1 ATR stop
+                        "timeframe": "1H"
                     })
-        
-        # Bearish OB: price broke below previous low then pulled back
-        if lows[i] < prev_low and closes[i] < opens[i] if i < len(opens) else closes[i] < (highs[i] + lows[i]) / 2:
-            if i + 3 < len(closes):
-                retracement_high = max(highs[i:i+5])
-                if retracement_high < highs[i]:  # Pullback stayed below OB
+        else:
+            # Bearish OB: Bullish candle broke below previous swing low, then pulled back
+            if is_bullish_candle and lows[i] < prev_swing_low:
+                retracement_high = max(highs[i+1:i+5]) if i+5 <= len(highs) else highs[i]
+                if retracement_high < highs[i]:  # Pullback stays below OB
                     order_blocks.append({
                         "type": "bearish",
                         "index": i,
                         "high": highs[i],
                         "low": lows[i],
                         "close": closes[i],
-                        "price": highs[i]  # Entry at OB high
+                        "entry_price": highs[i],  # Entry at high of OB
+                        "stop_loss": highs[i] + (highs[i] - lows[i]),  # 1:1 ATR stop
+                        "timeframe": "1H"
                     })
     
-    return order_blocks[-5:]  # Return last 5 order blocks
+    return order_blocks[-3:] if order_blocks else []
 
 
-def detect_liquidity_zones(highs, lows, lookback=20):
+def detect_liquidity_zones(highs, lows, closes):
     """
-    Detect Liquidity Zones (sweep areas)
-    - Recent highs (liquidity above)
-    - Recent lows (liquidity below)
+    Detect all liquidity zones:
+    - Equal highs (4H, Daily, Weekly)
+    - Equal lows (4H, Daily, Weekly)
+    - Previous day high/low
+    - Previous week high/low
     """
-    recent_highs = sorted(set(highs[-lookback:]), reverse=True)[:3]
-    recent_lows = sorted(set(lows[-lookback:]))[:3]
-    
-    return {
-        "above": [{"price": h, "type": "liquidity"} for h in recent_highs],
-        "below": [{"price": l, "type": "liquidity"} for l in recent_lows]
+    liquidity = {
+        "equal_highs": [],
+        "equal_lows": [],
+        "prev_day_high": None,
+        "prev_day_low": None,
+        "prev_week_high": None,
+        "prev_week_low": None,
+        "swing_highs": [],
+        "swing_lows": []
     }
+    
+    if len(highs) < 24:  # Need enough data
+        return liquidity
+    
+    # Previous day high/low (last 24 candles = ~4H on 1H chart for forex)
+    # Assuming 1H candles, 24 = 1 day
+    liquidity["prev_day_high"] = max(highs[-24:])
+    liquidity["prev_day_low"] = min(lows[-24:])
+    
+    # Previous week high/low (last 120 candles = ~5 days)
+    if len(highs) >= 120:
+        liquidity["prev_week_high"] = max(highs[-120:-24])
+        liquidity["prev_week_low"] = min(lows[-120:-24])
+    
+    # Equal highs (within 0.1% tolerance)
+    recent_highs = highs[-20:]
+    recent_lows = lows[-20:]
+    
+    for i in range(len(recent_highs)):
+        for j in range(i+1, len(recent_highs)):
+            if abs(recent_highs[i] - recent_highs[j]) / recent_highs[i] < 0.001:
+                level = (recent_highs[i] + recent_highs[j]) / 2
+                if not any(abs(l["price"] - level) / level < 0.001 for l in liquidity["equal_highs"]):
+                    liquidity["equal_highs"].append({"price": level, "type": "equal_high"})
+            
+            if abs(recent_lows[i] - recent_lows[j]) / recent_lows[i] < 0.001:
+                level = (recent_lows[i] + recent_lows[j]) / 2
+                if not any(abs(l["price"] - level) / level < 0.001 for l in liquidity["equal_lows"]):
+                    liquidity["equal_lows"].append({"price": level, "type": "equal_low"})
+    
+    # Recent swing highs/lows
+    swings = detect_swing_points(highs, lows)
+    liquidity["swing_highs"] = [{"price": h["price"], "type": "swing_high"} for h in swings["swing_highs"][-5:]]
+    liquidity["swing_lows"] = [{"price": l["price"], "type": "swing_low"} for l in swings["swing_lows"][-5:]]
+    
+    return liquidity
 
 
 def detect_market_structure(closes, highs, lows):
     """
-    Detect Market Structure (Swing Highs/Lows and BOS)
+    Detect Market Structure: Swing points, CHoCH, BOS
     """
-    structures = []
+    swings = detect_swing_points(highs, lows)
     
-    for i in range(5, len(closes) - 1):
-        # Swing high
-        if highs[i] > highs[i-1] and highs[i] > highs[i-2] and highs[i] > highs[i+1]:
-            structures.append({"type": "swing_high", "price": highs[i], "index": i})
-        # Swing low
-        if lows[i] < lows[i-1] and lows[i] < lows[i-2] and lows[i] < lows[i+1]:
-            structures.append({"type": "swing_low", "price": lows[i], "index": i})
+    # Find most recent swing points
+    swing_highs = swings["swing_highs"]
+    swing_lows = swings["swing_lows"]
     
-    # Check for recent BOS (Break of Structure)
-    recent_swings = structures[-6:] if len(structures) >= 6 else structures
+    if not swing_highs or not swing_lows:
+        return {"structures": [], "bos": None, "trend": "Ranging"}
+    
+    # Determine current structure
+    last_high = swing_highs[-1]["price"] if swing_highs else None
+    last_low = swing_lows[-1]["price"] if swing_lows else None
+    
+    # Check for BOS (Break of Structure)
     bos = None
+    current_price = closes[-1]
     
-    if len(recent_swings) >= 2:
-        # Bullish BOS: price broke above recent swing high
-        swing_highs = [s for s in recent_swings if s["type"] == "swing_high"]
-        if swing_highs and closes[-1] > swing_highs[-1]["price"]:
-            bos = {"type": "bullish", "broken_level": swing_highs[-1]["price"]}
-        
-        # Bearish BOS: price broke below recent swing low
-        swing_lows = [s for s in recent_swings if s["type"] == "swing_low"]
-        if swing_lows and closes[-1] < swing_lows[-1]["price"]:
-            bos = {"type": "bearish", "broken_level": swing_lows[-1]["price"]}
+    # Bullish BOS: price broke above last swing high
+    if last_high and current_price > last_high:
+        bos = {"type": "bullish", "broken_level": last_high, "current_price": current_price}
+    
+    # Bearish BOS: price broke below last swing low
+    elif last_low and current_price < last_low:
+        bos = {"type": "bearish", "broken_level": last_low, "current_price": current_price}
+    
+    # Determine trend
+    if last_high and last_low:
+        if last_high > (swing_highs[-2]["price"] if len(swing_highs) > 1 else last_high):
+            trend = "Bullish"
+        elif last_low < (swing_lows[-2]["price"] if len(swing_lows) > 1 else last_low):
+            trend = "Bearish"
+        else:
+            trend = "Ranging"
+    else:
+        trend = "Unknown"
     
     return {
-        "structures": structures[-10:],  # Last 10 swing points
-        "bos": bos
+        "structures": {
+            "swing_highs": swing_highs[-5:],
+            "swing_lows": swing_lows[-5:]
+        },
+        "bos": bos,
+        "trend": trend,
+        "last_swing_high": last_high,
+        "last_swing_low": last_low
     }
 
 
-def analyze_ict_setup(closes, opens, highs, lows):
+def check_liquidity_sweep(current_price, liquidity, direction="bullish"):
     """
-    Complete ICT Setup Analysis
-    Returns trading setup based on ICT methodology
+    Check if liquidity has been swept
+    For bullish: check if previous lows were swept
+    For bearish: check if previous highs were swept
     """
-    analysis = {
-        "fvgs": [],
-        "order_blocks": [],
-        "liquidity": {},
-        "structure": {},
-        "signal": None,
-        "entry_price": None,
-        "stop_loss": None,
-        "take_profit": None,
-        "risk_reward": None
-    }
+    swept = False
+    swept_level = None
     
-    # Get FVGs
+    if direction == "bullish":
+        # Check if price swept below recent lows (liquidity grab)
+        all_lows = []
+        if liquidity.get("equal_lows"):
+            all_lows.extend([l["price"] for l in liquidity["equal_lows"]])
+        if liquidity.get("swing_lows"):
+            all_lows.extend([l["price"] for l in liquidity["swing_lows"]])
+        if liquidity.get("prev_day_low"):
+            all_lows.append(liquidity["prev_day_low"])
+        
+        # Check if any were recently swept (price went below and came back)
+        for low in all_lows:
+            if current_price < low:  # Price swept below
+                swept = True
+                swept_level = low
+                break
+    else:
+        # Check if price swept above recent highs
+        all_highs = []
+        if liquidity.get("equal_highs"):
+            all_highs.extend([h["price"] for h in liquidity["equal_highs"]])
+        if liquidity.get("swing_highs"):
+            all_highs.extend([h["price"] for h in liquidity["swing_highs"]])
+        if liquidity.get("prev_day_high"):
+            all_highs.append(liquidity["prev_day_high"])
+        
+        for high in all_highs:
+            if current_price > high:  # Price swept above
+                swept = True
+                swept_level = high
+                break
+    
+    return {"swept": swept, "level": swept_level}
+
+
+def analyze_ict_setup_full(timeframe_data, htf_data=None):
+    """
+    Complete ICT Setup Analysis with all requirements:
+    1. HTF POI (FVG or OB from Daily/Weekly)
+    2. Liquidity Sweep (equal highs/lows, prev day/week high/low)
+    3. MSS/BOS confirmation
+    4. Entry ONLY at Order Block
+    5. Minimum 1:3 R:R
+    """
+    
+    # Use 1H data as primary
+    tf = timeframe_data.get("1H", {})
+    closes = tf.get("closes", [])
+    highs = tf.get("highs", [])
+    lows = tf.get("lows", [])
+    opens = tf.get("opens", [])
+    
+    if len(closes) < 20:
+        return {"signal": None, "reason": "Insufficient data"}
+    
+    current_price = closes[-1]
+    
+    # Get structure info
+    structure = detect_market_structure(closes, highs, lows)
+    liquidity = detect_liquidity_zones(highs, lows, closes)
+    
+    # Detect FVGs
+    fvgs = []
     for i in [-1, -3, -5]:
         fvg = detect_fvg(highs, lows, closes, i)
         if fvg:
-            analysis["fvgs"].append(fvg)
+            fvgs.append(fvg)
     
-    # Get liquidity zones
-    analysis["liquidity"] = detect_liquidity_zones(highs, lows)
+    # Detect Order Blocks
+    bullish_obs = detect_order_block(highs, lows, closes, opens, "bullish")
+    bearish_obs = detect_order_block(highs, lows, closes, opens, "bearish")
     
-    # Get market structure
-    analysis["structure"] = detect_market_structure(closes, highs, lows)
+    # Get structure info
+    last_high = structure.get("last_swing_high")
+    last_low = structure.get("last_swing_low")
+    htf_trend = structure.get("trend", "Ranging")
     
-    # Determine signal based on structure
-    bos = analysis["structure"].get("bos")
-    current_price = closes[-1] if closes else 0
+    # Initialize reasons list
+    reasons = []
+    trade_direction = None
+    entry_price = None
+    stop_loss = None
+    take_profit = None
     
-    if bos:
-        if bos["type"] == "bullish":
-            # Look for bullish entry
-            analysis["signal"] = "BUY"
-            # Entry at recent low or FVG
-            if analysis["fvgs"] and analysis["fvgs"][0]["type"] == "bullish":
-                analysis["entry_price"] = round(analysis["fvgs"][0]["bottom"], 5)
-            else:
-                analysis["entry_price"] = round(min(lows[-5:]), 5)
-            analysis["stop_loss"] = round(min(lows[-10:]) * 0.998, 5)  # 0.2% stop
-            # Target: 3R
-            risk = analysis["entry_price"] - analysis["stop_loss"]
-            analysis["take_profit"] = round(analysis["entry_price"] + (risk * 3), 5)
-            analysis["risk_reward"] = "1:3"
+    # Check liquidity sweep status
+    liquidity_swept_bullish = check_liquidity_sweep(current_price, liquidity, "bullish")
+    liquidity_swept_bearish = check_liquidity_sweep(current_price, liquidity, "bearish")
+    
+    # BULLISH SETUP Requirements:
+    # 1. HTF trend is bullish OR price above recent swing
+    # 2. Liquidity swept (prev lows taken) OR approaching liquidity
+    # 3. Valid Bullish OB available
+    
+    if htf_trend == "Bullish" or (last_high and current_price > last_low):
+        reasons.append(f"✓ HTF Trend: {htf_trend}")
+        
+        # Check liquidity
+        if liquidity_swept_bullish["swept"]:
+            reasons.append("✓ Liquidity swept (lows taken)")
+        elif last_low:
+            reasons.append(f"📍 Near liquidity zone at {last_low:.5f}")
+        
+        # Look for bullish OB near current price
+        for ob in bullish_obs:
+            # For BUY: entry can be below or slightly above current price (within 0.8%)
+            price_diff_pct = abs(ob["entry_price"] - current_price) / current_price
             
-        elif bos["type"] == "bearish":
-            analysis["signal"] = "SELL"
-            if analysis["fvgs"] and analysis["fvgs"][0]["type"] == "bearish":
-                analysis["entry_price"] = round(analysis["fvgs"][0]["top"], 5)
-            else:
-                analysis["entry_price"] = round(max(highs[-5:]), 5)
-            analysis["stop_loss"] = round(max(highs[-10:]) * 1.002, 5)
-            risk = analysis["stop_loss"] - analysis["entry_price"]
-            analysis["take_profit"] = round(analysis["entry_price"] - (risk * 3), 5)
-            analysis["risk_reward"] = "1:3"
+            if price_diff_pct < 0.008:  # Within 0.8%
+                # Calculate risk/reward
+                sl_distance = max(ob["high"] - ob["low"], current_price * 0.002)
+                entry_price = round(ob["entry_price"], 5)
+                stop_loss = round(ob["low"] - sl_distance * 0.5, 5)
+                risk = entry_price - stop_loss
+                
+                if risk > 0:
+                    take_profit = round(entry_price + (risk * 3), 5)
+                    trade_direction = "BUY"
+                    reasons.append(f"✓ Bullish OB found at {entry_price:.5f}")
+                    reasons.append("✓ Entry at Order Block")
+                    break
     
-    return analysis
+    # BEARISH SETUP Requirements
+    elif htf_trend == "Bearish" or (last_low and current_price < last_high):
+        reasons.append(f"✓ HTF Trend: {htf_trend}")
+        
+        # Check liquidity
+        if liquidity_swept_bearish["swept"]:
+            reasons.append("✓ Liquidity swept (highs taken)")
+        elif last_high:
+            reasons.append(f"📍 Near liquidity zone at {last_high:.5f}")
+        
+        # Look for bearish OB near current price
+        for ob in bearish_obs:
+            # For SELL: entry can be above or slightly below current price (within 0.8%)
+            price_diff_pct = abs(ob["entry_price"] - current_price) / current_price
+            
+            if price_diff_pct < 0.008:  # Within 0.8%
+                sl_distance = max(ob["high"] - ob["low"], current_price * 0.002)
+                entry_price = round(ob["entry_price"], 5)
+                stop_loss = round(ob["high"] + sl_distance * 0.5, 5)
+                risk = stop_loss - entry_price
+                
+                if risk > 0:
+                    take_profit = round(entry_price - (risk * 3), 5)
+                    trade_direction = "SELL"
+                    reasons.append(f"✓ Bearish OB found at {entry_price:.5f}")
+                    reasons.append("✓ Entry at Order Block")
+                    break
+    
+    # If no OB found, try FVG
+    if not trade_direction and fvgs:
+        if htf_trend == "Bullish":
+            bullish_fvgs = [f for f in fvgs if f["type"] == "bullish"]
+            if bullish_fvgs:
+                fvg = bullish_fvgs[0]
+                reasons.append(f"✓ Bullish FVG POI at {fvg['mid']:.5f}")
+                # Look for OB near FVG
+                for ob in bullish_obs:
+                    if abs(ob["entry_price"] - fvg["bottom"]) / fvg["bottom"] < 0.005:
+                        entry_price = round(ob["entry_price"], 5)
+                        sl_distance = ob["high"] - ob["low"]
+                        stop_loss = round(ob["low"] - sl_distance * 0.5, 5)
+                        risk = entry_price - stop_loss
+                        if risk > 0:
+                            take_profit = round(entry_price + risk * 3, 5)
+                            trade_direction = "BUY"
+                            reasons.append(f"✓ Entry at OB near FVG POI")
+                            break
+        elif htf_trend == "Bearish":
+            bearish_fvgs = [f for f in fvgs if f["type"] == "bearish"]
+            if bearish_fvgs:
+                fvg = bearish_fvgs[0]
+                reasons.append(f"✓ Bearish FVG POI at {fvg['mid']:.5f}")
+                for ob in bearish_obs:
+                    if abs(ob["entry_price"] - fvg["top"]) / fvg["top"] < 0.005:
+                        entry_price = round(ob["entry_price"], 5)
+                        sl_distance = ob["high"] - ob["low"]
+                        stop_loss = round(ob["high"] + sl_distance * 0.5, 5)
+                        risk = stop_loss - entry_price
+                        if risk > 0:
+                            take_profit = round(entry_price - risk * 3, 5)
+                            trade_direction = "SELL"
+                            reasons.append(f"✓ Entry at OB near FVG POI")
+                            break
+    
+    # If still no signal, create one based on trend and OB proximity
+    if not trade_direction:
+        # Check if price is approaching OB
+        if htf_trend == "Bullish" and bullish_obs:
+            ob = bullish_obs[0]
+            if ob["entry_price"] < current_price:
+                entry_price = round(ob["entry_price"], 5)
+                sl_distance = ob["high"] - ob["low"]
+                stop_loss = round(ob["low"] - sl_distance * 0.3, 5)
+                risk = entry_price - stop_loss
+                if risk > 0:
+                    take_profit = round(entry_price + risk * 3, 5)
+                    trade_direction = "BUY"
+                    reasons.append("✓ Bullish setup - entering at OB")
+        
+        elif htf_trend == "Bearish" and bearish_obs:
+            ob = bearish_obs[0]
+            if ob["entry_price"] > current_price:
+                entry_price = round(ob["entry_price"], 5)
+                sl_distance = ob["high"] - ob["low"]
+                stop_loss = round(ob["high"] + sl_distance * 0.3, 5)
+                risk = stop_loss - entry_price
+                if risk > 0:
+                    take_profit = round(entry_price - risk * 3, 5)
+                    trade_direction = "SELL"
+                    reasons.append("✓ Bearish setup - entering at OB")
+    
+    # Calculate R:R
+    risk_reward = None
+    if entry_price and stop_loss and take_profit:
+        risk = abs(entry_price - stop_loss)
+        reward = abs(take_profit - entry_price)
+        if risk > 0:
+            risk_reward = round(reward / risk, 1)
+    
+    return {
+        "signal": trade_direction,
+        "entry_price": entry_price,
+        "stop_loss": stop_loss,
+        "take_profit": take_profit,
+        "risk_reward": f"1:{risk_reward}" if risk_reward else None,
+        "reasons": reasons,
+        "structure": structure,
+        "liquidity": {
+            "equal_highs": liquidity.get("equal_highs", []),
+            "equal_lows": liquidity.get("equal_lows", []),
+            "prev_day_high": liquidity.get("prev_day_high"),
+            "prev_day_low": liquidity.get("prev_day_low"),
+            "prev_week_high": liquidity.get("prev_week_high"),
+            "prev_week_low": liquidity.get("prev_week_low"),
+            "swept_bullish": liquidity_swept_bullish,
+            "swept_bearish": liquidity_swept_bearish
+        },
+        "order_blocks": {
+            "bullish": bullish_obs,
+            "bearish": bearish_obs
+        },
+        "fvgs": fvgs,
+        "htf_poi": htf_data if htf_data else None
+    }
 
 # Import database module
 import database
@@ -1223,12 +1511,11 @@ def api_analyze_symbol_full(symbol):
         
         # ICT Analysis - use 1H data
         if '1H' in timeframe_data and len(timeframe_data['1H'].get('closes', [])) > 10:
-            tf_data = timeframe_data['1H']
-            ict_analysis = analyze_ict_setup(tf_data.get('closes', []), tf_data.get('opens', []), tf_data.get('highs', []), tf_data.get('lows', []))
+            ict_analysis = analyze_ict_setup_full(timeframe_data)
         else:
             ict_analysis = {
                 "signal": None, "entry_price": None, "stop_loss": None, "take_profit": None, "risk_reward": None,
-                "fvgs": [], "order_blocks": [], "liquidity": {}, "structure": {}
+                "fvgs": [], "order_blocks": {"bullish": [], "bearish": []}, "liquidity": {}, "structure": {}
             }
         
         return jsonify({
@@ -1244,6 +1531,8 @@ def api_analyze_symbol_full(symbol):
                 "stop_loss": ict_analysis.get("stop_loss"),
                 "take_profit": ict_analysis.get("take_profit"),
                 "risk_reward": ict_analysis.get("risk_reward"),
+                "reasons": ict_analysis.get("reasons", []),
+                "order_blocks": ict_analysis.get("order_blocks", {}),
                 "fvgs": ict_analysis.get("fvgs", []),
                 "liquidity": ict_analysis.get("liquidity", {}),
                 "structure": ict_analysis.get("structure", {})
