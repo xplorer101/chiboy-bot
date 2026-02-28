@@ -9,9 +9,13 @@ import os
 import json
 import urllib.request
 from pathlib import Path
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, redirect, url_for, flash, session
+from functools import wraps
 import logging
 import threading
+
+# Import database module
+import database
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -34,7 +38,126 @@ analyzer = QuickAnalyzer()
 # signals_manager = SignalManager()
 # trading_signals = TradingSignals()
 
-from datetime import datetime
+from datetime import datetime, timedelta
+import time as time_module
+import re
+
+
+# Login required decorator - disabled
+def login_required(f):
+    return f
+
+
+# Auth routes - disabled
+@app.route('/login')
+def login_page():
+    """Login page - disabled"""
+    return redirect('/')
+
+@app.route('/register')
+def register_page():
+    """Registration page"""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        
+        if not username or not password:
+            flash('Please enter username and password', 'error')
+            return render_template('register.html')
+        
+        if password != confirm_password:
+            flash('Passwords do not match', 'error')
+            return render_template('register.html')
+        
+        if len(password) < 4:
+            flash('Password must be at least 4 characters', 'error')
+            return render_template('register.html')
+        
+        user_id = database.create_user(username, password)
+        
+        if user_id:
+            flash('Registration successful! Please login.', 'success')
+            return redirect(url_for('login_page'))
+        else:
+            flash('Username already exists', 'error')
+    
+    return render_template('register.html')
+
+
+@app.route('/logout')
+def logout():
+    """Logout route"""
+    session.clear()
+    flash('You have been logged out', 'info')
+    return redirect(url_for('login_page'))
+
+
+@app.route('/signals')
+def signals_page():
+    """Signal history page"""
+    return render_template('signals.html')
+
+
+@app.route('/api/signals', methods=['GET'])
+def api_signals():
+    """Get signal history"""
+    
+    symbol = request.args.get('symbol', '')
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    
+    signals = database.get_signals(
+        user_id=user_id,
+        symbol=symbol if symbol else None,
+        start_date=start_date if start_date else None,
+        end_date=end_date if end_date else None,
+        limit=100
+    )
+    
+    signals_list = []
+    for s in signals:
+        signals_list.append({
+            'id': s['id'],
+            'symbol': s['symbol'],
+            'timeframe': s['timeframe'],
+            'direction': s['direction'],
+            'entry_price': s['entry_price'],
+            'sl': s['sl'],
+            'tp': s['tp'],
+            'confidence': s['confidence'],
+            'reasons': s['reasons'],
+            'created_at': s['created_at']
+        })
+    
+    return jsonify({
+        'success': True,
+        'signals': signals_list,
+        'count': len(signals_list)
+    })
+
+
+@app.route('/api/signals', methods=['POST'])
+def api_save_signal():
+    """Save a new signal"""
+    data = request.json
+    
+    signal_id = database.save_signal(
+        user_id=user_id,
+        symbol=data.get('symbol'),
+        timeframe=data.get('timeframe', '15m'),
+        direction=data.get('direction'),
+        entry_price=float(data.get('entry_price', 0)),
+        sl=float(data.get('sl', 0)),
+        tp=float(data.get('tp', 0)),
+        confidence=float(data.get('confidence', 0)),
+        reasons=data.get('reasons', '')
+    )
+    
+    return jsonify({
+        'success': True,
+        'signal_id': signal_id
+    })
 
 # Store analysis results
 analysis_cache = {
@@ -49,6 +172,191 @@ trade_history = {
     "open_trades": [],  # Currently open trades
     "next_id": 1
 }
+
+# Economic Calendar Cache
+economic_cache = {
+    "data": [],
+    "last_update": None
+}
+
+# Market News Cache
+news_cache = {
+    "data": [],
+    "last_update": None
+}
+
+CACHE_DURATION = 3600  # 1 hour in seconds
+
+
+def fetch_economic_calendar():
+    """Fetch economic calendar - uses demo data with realistic events"""
+    global economic_cache
+    
+    # Check if cache is still valid
+    if economic_cache["last_update"]:
+        elapsed = (datetime.now() - datetime.fromisoformat(economic_cache["last_update"])).total_seconds()
+        if elapsed < CACHE_DURATION:
+            return economic_cache["data"]
+    
+    # Use demo data with realistic upcoming economic events
+    events = get_demo_calendar_data()
+    
+    economic_cache["data"] = events
+    economic_cache["last_update"] = datetime.now().isoformat()
+    
+    return events
+
+
+def get_demo_calendar_data():
+    """Get demo economic calendar data with realistic upcoming events"""
+    today = datetime.now()
+    
+    # Generate events for today and next 6 days
+    events = []
+    
+    # Today's events (Feb 28) - Typical US session events
+    events.append({"date": today.strftime("%Y-%m-%d"), "time": "08:30", "currency": "GBP", "event": "BRC Shop Price Index", "impact": "low", "forecast": "0.5%", "actual": "-"})
+    events.append({"date": today.strftime("%Y-%m-%d"), "time": "09:00", "currency": "EUR", "event": "German GfK Consumer Confidence", "impact": "medium", "forecast": "-21.5", "actual": "-"})
+    events.append({"date": today.strftime("%Y-%m-%d"), "time": "10:00", "currency": "EUR", "event": "ECB Economic Bulletin", "impact": "medium", "forecast": "-", "actual": "-"})
+    events.append({"date": today.strftime("%Y-%m-%d"), "time": "13:30", "currency": "USD", "event": "Core PCE Price Index", "impact": "high", "forecast": "2.8%", "actual": "-"})
+    events.append({"date": today.strftime("%Y-%m-%d"), "time": "13:30", "currency": "USD", "event": "Personal Spending", "impact": "medium", "forecast": "0.2%", "actual": "-"})
+    events.append({"date": today.strftime("%Y-%m-%d"), "time": "13:30", "currency": "USD", "event": "Personal Income", "impact": "medium", "forecast": "0.3%", "actual": "-"})
+    events.append({"date": today.strftime("%Y-%m-%d"), "time": "15:00", "currency": "USD", "event": "Pending Home Sales", "impact": "medium", "forecast": "0.5%", "actual": "-"})
+    events.append({"date": today.strftime("%Y-%m-%d"), "time": "15:00", "currency": "USD", "event": "Michigan Consumer Sentiment", "impact": "high", "forecast": "64.5", "actual": "-"})
+    
+    # Tomorrow
+    tomorrow = today + timedelta(days=1)
+    events.append({"date": tomorrow.strftime("%Y-%m-%d"), "time": "00:30", "currency": "AUD", "event": "CPI (YoY)", "impact": "high", "forecast": "2.4%", "actual": "-"})
+    events.append({"date": tomorrow.strftime("%Y-%m-%d"), "time": "01:30", "currency": "AUD", "event": "RBA Consumer Inflation Expectations", "impact": "medium", "forecast": "4.0%", "actual": "-"})
+    events.append({"date": tomorrow.strftime("%Y-%m-%d"), "time": "08:30", "currency": "GBP", "event": "Mortgage Approvals", "impact": "medium", "forecast": "42.5K", "actual": "-"})
+    events.append({"date": tomorrow.strftime("%Y-%m-%d"), "time": "09:00", "currency": "EUR", "event": "ECB President Speech", "impact": "high", "forecast": "-", "actual": "-"})
+    events.append({"date": tomorrow.strftime("%Y-%m-%d"), "time": "09:30", "currency": "GBP", "event": "GDP (QoQ)", "impact": "high", "forecast": "0.1%", "actual": "-"})
+    events.append({"date": tomorrow.strftime("%Y-%m-%d"), "time": "09:30", "currency": "GBP", "event": "GDP (YoY)", "impact": "high", "forecast": "0.5%", "actual": "-"})
+    events.append({"date": tomorrow.strftime("%Y-%m-%d"), "time": "13:30", "currency": "CAD", "event": "GDP (MoM)", "impact": "high", "forecast": "0.1%", "actual": "-"})
+    events.append({"date": tomorrow.strftime("%Y-%m-%d"), "time": "13:30", "currency": "USD", "event": "Chicago PMI", "impact": "medium", "forecast": "48.0", "actual": "-"})
+    
+    # Day 2
+    day2 = today + timedelta(days=2)
+    events.append({"date": day2.strftime("%Y-%m-%d"), "time": "01:30", "currency": "AUD", "event": "Retail Sales (MoM)", "impact": "high", "forecast": "0.3%", "actual": "-"})
+    events.append({"date": day2.strftime("%Y-%m-%d"), "time": "04:30", "currency": "JPY", "event": "Tokyo CPI (YoY)", "impact": "medium", "forecast": "2.6%", "actual": "-"})
+    events.append({"date": day2.strftime("%Y-%m-%d"), "time": "08:30", "currency": "GBP", "event": "Manufacturing PMI", "impact": "high", "forecast": "49.2", "actual": "-"})
+    events.append({"date": day2.strftime("%Y-%m-%d"), "time": "09:30", "currency": "GBP", "event": "Construction PMI", "impact": "medium", "forecast": "51.0", "actual": "-"})
+    events.append({"date": day2.strftime("%Y-%m-%d"), "time": "10:00", "currency": "EUR", "event": "CPI (YoY)", "impact": "high", "forecast": "2.4%", "actual": "-"})
+    events.append({"date": day2.strftime("%Y-%m-%d"), "time": "13:45", "currency": "USD", "event": "ISM Manufacturing PMI", "impact": "high", "forecast": "48.5", "actual": "-"})
+    events.append({"date": day2.strftime("%Y-%m-%d"), "time": "14:00", "currency": "USD", "event": "JOLTS Job Openings", "impact": "medium", "forecast": "8.7M", "actual": "-"})
+    
+    # Day 3
+    day3 = today + timedelta(days=3)
+    events.append({"date": day3.strftime("%Y-%m-%d"), "time": "01:30", "currency": "AUD", "event": "Trade Balance", "impact": "medium", "forecast": "5.8B", "actual": "-"})
+    events.append({"date": day3.strftime("%Y-%m-%d"), "time": "08:30", "currency": "GBP", "event": "Services PMI", "impact": "high", "forecast": "51.0", "actual": "-"})
+    events.append({"date": day3.strftime("%Y-%m-%d"), "time": "09:00", "currency": "EUR", "event": "PPI (MoM)", "impact": "medium", "forecast": "0.2%", "actual": "-"})
+    events.append({"date": day3.strftime("%Y-%m-%d"), "time": "10:00", "currency": "EUR", "event": "Retail Sales (MoM)", "impact": "medium", "forecast": "0.1%", "actual": "-"})
+    events.append({"date": day3.strftime("%Y-%m-%d"), "time": "13:15", "currency": "USD", "event": "ADP Non-Farm Employment", "impact": "medium", "forecast": "150K", "actual": "-"})
+    events.append({"date": day3.strftime("%Y-%m-%d"), "time": "14:00", "currency": "USD", "event": "ISM Services PMI", "impact": "high", "forecast": "52.5", "actual": "-"})
+    
+    # Day 4
+    day4 = today + timedelta(days=4)
+    events.append({"date": day4.strftime("%Y-%m-%d"), "time": "00:30", "currency": "AUD", "event": "RBA Interest Rate Decision", "impact": "high", "forecast": "4.35%", "actual": "-"})
+    events.append({"date": day4.strftime("%Y-%m-%d"), "time": "08:30", "currency": "GBP", "event": "Bank of England Interest Rate", "impact": "high", "forecast": "5.25%", "actual": "-"})
+    events.append({"date": day4.strftime("%Y-%m-%d"), "time": "09:00", "currency": "EUR", "event": "ECB Interest Rate Decision", "impact": "high", "forecast": "4.50%", "actual": "-"})
+    events.append({"date": day4.strftime("%Y-%m-%d"), "time": "13:30", "currency": "USD", "event": "Initial Jobless Claims", "impact": "medium", "forecast": "215K", "actual": "-"})
+    events.append({"date": day4.strftime("%Y-%m-%d"), "time": "13:30", "currency": "USD", "event": "Non-Farm Productivity", "impact": "medium", "forecast": "1.5%", "actual": "-"})
+    
+    # Day 5 - NFP Friday March 6th
+    day5 = today + timedelta(days=5)
+    day6_nfp = datetime(2026, 3, 6)  # Friday March 6th - NFP day
+    events.append({"date": day5.strftime("%Y-%m-%d"), "time": "08:30", "currency": "GBP", "event": "Halifax House Prices", "impact": "medium", "forecast": "0.3%", "actual": "-"})
+    events.append({"date": day6_nfp.strftime("%Y-%m-%d"), "time": "13:30", "currency": "USD", "event": "NFP Non-Farm Payrolls", "impact": "high", "forecast": "180K", "actual": "-"})
+    events.append({"date": day6_nfp.strftime("%Y-%m-%d"), "time": "13:30", "currency": "USD", "event": "Unemployment Rate", "impact": "high", "forecast": "4.0%", "actual": "-"})
+    events.append({"date": day6_nfp.strftime("%Y-%m-%d"), "time": "13:30", "currency": "USD", "event": "Average Hourly Earnings", "impact": "high", "forecast": "0.3%", "actual": "-"})
+    events.append({"date": day5.strftime("%Y-%m-%d"), "time": "15:00", "currency": "USD", "event": "Factory Orders", "impact": "medium", "forecast": "-0.2%", "actual": "-"})
+    
+    # Day 6
+    day6 = today + timedelta(days=6)
+    events.append({"date": day6.strftime("%Y-%m-%d"), "time": "01:30", "currency": "AUD", "event": "RBA Monetary Policy Statement", "impact": "high", "forecast": "-", "actual": "-"})
+    events.append({"date": day6.strftime("%Y-%m-%d"), "time": "09:00", "currency": "EUR", "event": "German Factory Orders", "impact": "medium", "forecast": "0.5%", "actual": "-"})
+    events.append({"date": day6.strftime("%Y-%m-%d"), "time": "13:30", "currency": "USD", "event": "Consumer Credit", "impact": "medium", "forecast": "15.0B", "actual": "-"})
+    
+    economic_cache["data"] = events
+    economic_cache["last_update"] = datetime.now().isoformat()
+    return events
+
+
+def fetch_market_news():
+    """Fetch market news from Yahoo Finance"""
+    global news_cache
+    
+    # Check if cache is still valid
+    if news_cache["last_update"]:
+        elapsed = (datetime.now() - datetime.fromisoformat(news_cache["last_update"])).total_seconds()
+        if elapsed < CACHE_DURATION:
+            return news_cache["data"]
+    
+    try:
+        # Fetch from Yahoo Finance
+        url = "https://news.yahoo.com/topic/business-news/"
+        req = urllib.request.Request(url)
+        req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+        
+        with urllib.request.urlopen(req, timeout=15) as response:
+            html = response.read().decode('utf-8')
+        
+        news_items = []
+        
+        # Parse news items
+        pattern = r'<h3[^>]*class="[^"]*title[^"]*"[^>]*>(.*?)</h3>'
+        titles = re.findall(pattern, html, re.DOTALL)
+        
+        for title in titles[:20]:
+            # Clean up the title
+            clean_title = re.sub(r'<[^>]+>', '', title).strip()
+            if clean_title and len(clean_title) > 10:
+                news_items.append({
+                    "title": clean_title,
+                    "source": "Yahoo Finance",
+                    "timestamp": datetime.now().isoformat()
+                })
+        
+        # Alternative parsing
+        if not news_items:
+            pattern2 = r'"title":"([^"]+)"'
+            titles2 = re.findall(pattern2, html)
+            for t in titles2[:20]:
+                if len(t) > 10 and 'business' in t.lower() or 'market' in t.lower() or 'stock' in t.lower() or 'economy' in t.lower():
+                    news_items.append({
+                        "title": t,
+                        "source": "Yahoo Finance",
+                        "timestamp": datetime.now().isoformat()
+                    })
+        
+        if not news_items:
+            news_items = get_demo_news_data()
+        
+        news_cache["data"] = news_items
+        news_cache["last_update"] = datetime.now().isoformat()
+        
+        return news_items
+        
+    except Exception as e:
+        logger.error(f"Error fetching news: {e}")
+        return get_demo_news_data()
+
+
+def get_demo_news_data():
+    """Get demo market news data"""
+    news = [
+        {"title": "Fed signals potential rate cuts in 2024", "source": "Reuters", "timestamp": datetime.now().isoformat()},
+        {"title": "US Dollar weakens as inflation data cools", "source": "Bloomberg", "timestamp": datetime.now().isoformat()},
+        {"title": "European markets open mixed amid rate concerns", "source": "CNBC", "timestamp": datetime.now().isoformat()},
+        {"title": "Oil prices rise on supply outlook", "source": "Reuters", "timestamp": datetime.now().isoformat()},
+        {"title": "Tech stocks rally on strong earnings", "source": "Yahoo Finance", "timestamp": datetime.now().isoformat()},
+        {"title": "Gold reaches new highs as safe haven", "source": "Kitco News", "timestamp": datetime.now().isoformat()},
+        {"title": "Bitcoin surges past resistance levels", "source": "CoinDesk", "timestamp": datetime.now().isoformat()},
+        {"title": "US Treasury yields fall on dovish Fed comments", "source": "MarketWatch", "timestamp": datetime.now().isoformat()},
+    ]
+    news_cache["data"] = news
+    news_cache["last_update"] = datetime.now().isoformat()
+    return news
 
 
 def save_trade_to_history(trade_data):
@@ -597,6 +905,8 @@ def api_analyze_symbol_full(symbol):
             yahoo_symbol = 'BTC-USD'
         elif symbol == 'ETHUSDT':
             yahoo_symbol = 'ETH-USD'
+        elif symbol == 'SOLUSDT':
+            yahoo_symbol = 'SOL-USD'
         elif symbol == 'US30':
             yahoo_symbol = '^DJI'
         elif symbol in ['NAS100', 'SPX500']:
@@ -680,46 +990,154 @@ def api_analyze_symbol_full(symbol):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@app.route('/api/stream/prices')
-def stream_prices():
-    """Server-Sent Events for live price streaming."""
-    from flask import Response
+@app.route('/sentiment')
+def sentiment_page():
+    """Market sentiment page"""
+    return render_template('sentiment.html')
+
+
+@app.route('/api/sentiment')
+def api_sentiment():
+    """Get currency strength and sentiment data from Yahoo Finance"""
+    import urllib.request
     import json
+    from datetime import datetime
     
-    def generate():
-        from src.data.demo_data import demo_generator
-        import time
-        
-        symbols = OANDA_CONFIG["forex_pairs"][:5] + BINANCE_CONFIG["crypto_pairs"][:5]
-        
-        while True:
-            prices = {}
-            for symbol in symbols:
-                if symbol.endswith('USDT'):
-                    prices[symbol] = demo_generator.get_current_price(symbol)
-                else:
-                    prices[symbol] = demo_generator.get_current_price(symbol)
-            
-            data = json.dumps({
-                "prices": prices,
-                "timestamp": datetime.now().isoformat()
+    currency_strength = {}
+    sentiment_data = []
+    
+    # Major pairs for calculating currency strength
+    pairs = [
+        ('EURUSD=X', 'EUR', 'USD'),
+        ('GBPUSD=X', 'GBP', 'USD'),
+        ('USDJPY=X', 'USD', 'JPY'),
+        ('USDCAD=X', 'USD', 'CAD'),
+        ('USDCHF=X', 'USD', 'CHF'),
+        ('AUDUSD=X', 'AUD', 'USD'),
+    ]
+    
+    for yahoo, base, quote in pairs:
+        try:
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo}?interval=1d&range=5d"
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=5) as response:
+                data = json.loads(response.read().decode())
+                result = data.get('chart', {}).get('result', [])
+                if result and result[0].get('indicators', {}).get('quote'):
+                    closes = result[0]['indicators']['quote'][0].get('close', [])
+                    if len(closes) >= 2 and closes[-1] and closes[-2]:
+                        change = ((closes[-1] - closes[-2]) / closes[-2]) * 100
+                        if base not in currency_strength:
+                            currency_strength[base] = {'strength': 50, 'pairs': 0}
+                        if quote not in currency_strength:
+                            currency_strength[quote] = {'strength': 50, 'pairs': 0}
+                        currency_strength[base]['strength'] += change * 2
+                        currency_strength[quote]['strength'] -= change * 2
+                        currency_strength[base]['pairs'] += 1
+                        currency_strength[quote]['pairs'] += 1
+        except:
+            continue
+    
+    # Fallback if no data
+    if not currency_strength:
+        for c in ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF']:
+            currency_strength[c] = {'strength': 50, 'pairs': 1}
+    
+    # Normalize
+    values = [v['strength'] for v in currency_strength.values()]
+    if values:
+        min_val, max_val = min(values), max(values)
+    else:
+        min_val, max_val = 0, 1
+    
+    for currency in currency_strength:
+        raw = currency_strength[currency]['strength']
+        normalized = ((raw - min_val) / (max_val - min_val) * 100) if max_val != min_val else 50
+        currency_strength[currency]['strength'] = round(normalized, 1)
+        currency_strength[currency]['change'] = round(raw - 50, 1)
+    
+    # Symbol sentiment - Forex, Gold, and Crypto
+    symbol_pairs = [
+        ('GC=F', 'XAUUSD'), 
+        ('EURUSD=X', 'EURUSD'), 
+        ('GBPUSD=X', 'GBPUSD'), 
+        ('USDJPY=X', 'USDJPY'),
+        ('BTC-USD', 'BTCUSDT'),
+        ('ETH-USD', 'ETHUSDT'),
+        ('SOL-USD', 'SOLUSDT'),
+    ]
+    for yahoo, sym in symbol_pairs:
+        try:
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo}?interval=1d&range=5d"
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=5) as response:
+                data = json.loads(response.read().decode())
+                result = data.get('chart', {}).get('result', [])
+                if result and result[0].get('indicators', {}).get('quote'):
+                    closes = result[0]['indicators']['quote'][0].get('close', [])
+                    if len(closes) >= 2 and closes[-1] and closes[-2]:
+                        change = ((closes[-1] - closes[-2]) / closes[-2]) * 100
+                        sentiment_data.append({
+                            'symbol': sym,
+                            'long': round(50 + change * 5, 1),
+                            'short': round(50 - change * 5, 1),
+                            'bullish': change > 0,
+                            'change': round(change, 2)
+                        })
+        except:
+            continue
+    
+    if not sentiment_data:
+        for sym in ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'BTCUSDT', 'ETHUSDT', 'SOLUSDT']:
+            sentiment_data.append({'symbol': sym, 'long': 50, 'short': 50, 'bullish': True, 'change': 0})
+    
+    return jsonify({
+        'success': True,
+        'timestamp': datetime.now().isoformat(),
+        'currencies': currency_strength,
+        'symbols': sentiment_data,
+        'overall_sentiment': 'Bullish' if sum(s['long'] for s in sentiment_data) / len(sentiment_data) > 50 else 'Bearish'
+    })
+
+
+@app.route('/api/heatmap')
+def api_heatmap():
+    from flask import jsonify
+    try:
+        response = api_sentiment()
+        data = response.get_json()
+        currencies = data.get('currencies', {})
+        heatmap_data = []
+        for currency, info in currencies.items():
+            strength = info.get('strength', 50)
+            color = '#3fb950' if strength >= 60 else '#f0b429' if strength >= 40 else '#f85149'
+            heatmap_data.append({
+                'currency': currency,
+                'strength': strength,
+                'color': color,
+                'change': info.get('change', 0)
             })
-            
-            yield f"data: {data}\n\n"
-            time.sleep(2)  # Update every 2 seconds
-    
-    return Response(generate(), mimetype='text/event-stream')
-
-
-def create_app():
-    """Create and configure the Flask app."""
-    return app
-
-
-def run_server(host='0.0.0.0', port=5000, debug=False):
-    """Run the Flask server."""
-    app.run(host=host, port=port, debug=debug)
+        heatmap_data.sort(key=lambda x: x['strength'], reverse=True)
+        return jsonify({'success': True, 'data': heatmap_data})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 
 if __name__ == '__main__':
     run_server(debug=True)
+if __name__ == '__main__':
+    run_server(debug=True)
+
+@app.route('/calendar')
+def calendar_page():
+    """Economic calendar page"""
+    return render_template('calendar.html')
+
+@app.route('/api/economic-calendar')
+def economic_calendar():
+    """Get economic calendar events from Forex Factory"""
+    data = fetch_economic_calendar()
+    if isinstance(data, list):
+        return jsonify({'success': True, 'events': data, 'date': datetime.now().strftime('%Y-%m-%d')})
+    return jsonify(data)
+

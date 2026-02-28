@@ -324,6 +324,62 @@
         
         .mobile-bottom-nav a.active { color: var(--accent-gold); }
         .mobile-bottom-nav a i { font-size: 1.25rem; margin-bottom: 0.25rem; }
+        
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 0.5rem;
+            font-size: 0.7rem;
+            flex: 1;
+        }
+        
+        .bottom-nav-item i { font-size: 1.25rem; margin-bottom: 0.25rem; display: block; }
+        .bottom-nav-item span { display: block; }
+        .bottom-nav-item.active { color: var(--accent-gold); }
+        .bottom-nav-item:hover { background: rgba(255,255,255,0.05); }
+        
+        .notification-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg-card-hover);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+        
+        .notification-toggle .toggle-switch {
+            width: 40px;
+            height: 20px;
+            background: var(--border-color);
+            border-radius: 10px;
+            position: relative;
+            transition: background 0.3s;
+        }
+        
+        .notification-toggle .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+        
+        .notification-toggle.active .toggle-switch {
+            background: var(--accent-green);
+        }
+        
+        .notification-toggle.active .toggle-switch::after {
+            transform: translateX(20px);
+        }
     </style>
 </head>
 <body>
@@ -342,6 +398,14 @@
                 <i class="fas fa-search"></i>
                 <span>Analysis</span>
             </a>
+            <a href="/calendar" class="sidebar-link">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Calendar</span>
+            </a>
+            <a href="/sentiment" class="sidebar-link">
+                <i class="fas fa-fire"></i>
+                <span>Sentiment</span>
+            </a>
             <a href="/trades" class="sidebar-link">
                 <i class="fas fa-history"></i>
                 <span>Trades</span>
@@ -357,9 +421,15 @@
     <div class="main-content">
         <div class="top-bar">
             <span style="color: #fff; font-weight: 600;">Market Analysis</span>
-            <button onclick="analyzeSymbol(currentSymbol)" style="background: var(--bg-card-hover); border: 1px solid var(--border-color); color: #fff; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer;">
-                <i class="fas fa-sync-alt"></i>
-            </button>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div class="notification-toggle" id="notifToggle" onclick="toggleNotifications()">
+                    <i class="fas fa-bell" id="notifIcon" style="color: #8b949e;"></i>
+                    <div class="toggle-switch" id="notifSwitch"></div>
+                </div>
+                <button onclick="analyzeSymbol(currentSymbol)" style="background: var(--bg-card-hover); border: 1px solid var(--border-color); color: #fff; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer;">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
         </div>
 
         <div class="container-fluid px-4 py-4">
@@ -463,15 +533,23 @@
 
     <!-- Mobile Bottom Nav -->
     <nav class="mobile-bottom-nav">
-        <a href="/">
+        <a href="/" class="bottom-nav-item">
             <i class="fas fa-tachometer-alt"></i>
             <span>Dashboard</span>
         </a>
-        <a href="/analysis" class="active">
+        <a href="/analysis" class="bottom-nav-item active">
             <i class="fas fa-search"></i>
             <span>Analysis</span>
         </a>
-        <a href="/trades">
+        <a href="/calendar" class="bottom-nav-item">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Calendar</span>
+        </a>
+        <a href="/sentiment" class="bottom-nav-item">
+            <i class="fas fa-fire"></i>
+            <span>Sentiment</span>
+        </a>
+        <a href="/trades" class="bottom-nav-item">
             <i class="fas fa-history"></i>
             <span>Trades</span>
         </a>
@@ -480,6 +558,95 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let currentSymbol = 'GBP_USD';
+        let notificationsEnabled = false;
+
+        // Request notification permission on page load
+        async function initNotifications() {
+            // Load saved preference from server
+            try {
+                const response = await fetch('/api/notifications/preferences');
+                const data = await response.json();
+                if (data.success && data.preferences.enabled) {
+                    notificationsEnabled = true;
+                    updateNotificationToggle();
+                }
+            } catch(e) { console.log('Could not load notification prefs'); }
+            
+            // Request browser permission if not granted/denied
+            if ('Notification' in window && Notification.permission === 'default') {
+                // Don't auto-request, wait for user to click toggle
+            }
+        }
+
+        function updateNotificationToggle() {
+            const toggle = document.getElementById('notifToggle');
+            const icon = document.getElementById('notifIcon');
+            if (notificationsEnabled) {
+                toggle.classList.add('active');
+                icon.style.color = '#3fb950';
+            } else {
+                toggle.classList.remove('active');
+                icon.style.color = '#8b949e';
+            }
+        }
+
+        async function toggleNotifications() {
+            const toggle = document.getElementById('notifToggle');
+            
+            if (!notificationsEnabled) {
+                // Request permission
+                if ('Notification' in window) {
+                    const permission = await Notification.requestPermission();
+                    if (permission === 'granted') {
+                        notificationsEnabled = true;
+                        updateNotificationToggle();
+                        showNotification('Notifications Enabled', 'You will receive alerts for new trade signals!');
+                    } else {
+                        alert('Please enable notifications in your browser settings');
+                        return;
+                    }
+                } else {
+                    alert('This browser does not support notifications');
+                    return;
+                }
+            } else {
+                notificationsEnabled = false;
+                updateNotificationToggle();
+            }
+            
+            // Save preference to server
+            try {
+                await fetch('/api/notifications/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        enabled: notificationsEnabled,
+                        symbols: [currentSymbol],
+                        sound: true
+                    })
+                });
+            } catch(e) { console.log('Could not save notification prefs'); }
+        }
+
+        function showNotification(title, body, icon = '🔔') {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(title, {
+                    body: body,
+                    icon: icon,
+                    tag: 'chiboy-signal'
+                });
+            }
+        }
+
+        function notifySignal(signal) {
+            if (!notificationsEnabled || !signal) return;
+            
+            const direction = signal.direction === 'long' ? '🟢 LONG' : '🔴 SHORT';
+            const rr = signal.risk_reward || '?';
+            const body = `${direction} ${currentSymbol}\nEntry: ${signal.entry_price}\nSL: ${signal.stop_loss}\nTP: ${signal.take_profit}\nR:R 1:${rr}`;
+            
+            showNotification('🎯 New Trade Signal!', body);
+        }
 
         function formatPrice(price, symbol) {
             if (!price) return '--';
@@ -541,6 +708,9 @@
                 const signal = data.signal;
                 
                 if (signal) {
+                    // Show browser notification for new signal
+                    notifySignal(signal);
+                    
                     const opp = signal;
                     signalBody.innerHTML = `
                         <div class="signal-card">
@@ -646,6 +816,7 @@
         
         // Auto load on page load
         document.addEventListener('DOMContentLoaded', () => {
+            initNotifications();
             analyzeSymbol('GBP_USD');
             // Auto-refresh prices only every 1 second (not trends)
             setInterval(() => {

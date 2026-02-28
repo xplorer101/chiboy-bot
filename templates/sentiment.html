@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHIBOY BOT - Market Sentiment</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --bg-card: #161b22;
+            --bg-card-hover: #1c2128;
+            --border-color: #30363d;
+            --accent-green: #3fb950;
+            --accent-red: #f85149;
+            --accent-gold: #f0b429;
+            --accent-blue: #58a6ff;
+            --text-primary: #ffffff;
+            --text-muted: #8b949e;
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            padding-left: 80px;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 80px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem 0;
+            z-index: 1000;
+        }
+        
+        .sidebar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+            margin-bottom: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .sidebar-brand i { font-size: 1.8rem; }
+        .sidebar-brand span { font-size: 0.7rem; margin-top: 0.25rem; }
+        
+        .sidebar-nav { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
+        
+        .sidebar-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 0.75rem 0.5rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-size: 0.7rem;
+            width: 70px;
+        }
+        
+        .sidebar-link i { font-size: 1.3rem; margin-bottom: 0.25rem; }
+        .sidebar-link:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+        .sidebar-link.active { background: var(--accent-gold); color: #000; }
+        
+        .sidebar-footer { display: flex; flex-direction: column; align-items: center; padding: 1rem 0; }
+        
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        /* Mobile Bottom Nav */
+        .mobile-bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border-color); padding: 0.5rem; z-index: 1000; }
+        
+        @media (max-width: 768px) {
+            body { padding-left: 0; padding-bottom: 60px; }
+            .sidebar { display: none; }
+            .mobile-bottom-nav { display: flex; justify-content: space-around; }
+        }
+        
+        .mobile-bottom-nav a { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); text-decoration: none; padding: 0.5rem; font-size: 0.7rem; flex: 1; }
+        .mobile-bottom-nav a i { font-size: 1.25rem; margin-bottom: 0.25rem; }
+        .mobile-bottom-nav a.active { color: var(--accent-gold); }
+        
+        /* Main Content */
+        .main { margin-left: 80px; padding: 1.5rem; }
+        @media (max-width: 768px) { .main { margin-left: 0; } }
+        
+        .header { margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        .header h1 { margin: 0; font-size: 1.8rem; display: flex; align-items: center; gap: 0.5rem; }
+        .header .last-update { color: var(--text-muted); font-size: 0.85rem; }
+        
+        /* Section Cards */
+        .section-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .section-title i { font-size: 1.25rem; color: var(--accent-gold); }
+        .section-title h2 { margin: 0; font-size: 1.1rem; font-weight: 600; color: var(--text-primary); }
+        .section-title .badge { margin-left: auto; background: var(--bg-card-hover); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; color: var(--text-muted); }
+        
+        /* Grid Layout */
+        .sentiment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 1rem;
+        }
+        
+        @media (max-width: 500px) {
+            .sentiment-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+        }
+        
+        /* Sentiment Cards */
+        .sentiment-card {
+            background: var(--bg-card-hover);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        
+        .sentiment-card:hover { border-color: var(--accent-gold); transform: translateY(-2px); }
+        
+        .sentiment-card .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .sentiment-card .code { font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text-primary); }
+        .sentiment-card .value { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .sentiment-card .change { font-size: 0.85rem; margin-bottom: 0.75rem; }
+        
+        /* Gauge Bar */
+        .gauge-container {
+            position: relative;
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        
+        .gauge-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .gauge-center {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 8px;
+            background: var(--text-muted);
+            opacity: 0.5;
+        }
+        
+        /* Bullish/Bearish Colors */
+        .bullish { color: var(--accent-green) !important; }
+        .bearish { color: var(--accent-red) !important; }
+        .neutral { color: var(--text-muted) !important; }
+        
+        .gauge-bullish { background: linear-gradient(90deg, var(--accent-green), #2ea043); }
+        .gauge-bearish { background: linear-gradient(90deg, #da3633, var(--accent-red)); }
+        .gauge-neutral { background: var(--text-muted); }
+        
+        /* Crypto Badge */
+        .crypto-badge {
+            display: inline-block;
+            background: rgba(247, 163, 46, 0.15);
+            color: var(--accent-gold);
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            margin-top: 0.25rem;
+        }
+        
+        /* Overall Sentiment */
+        .overall-sentiment {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, var(--bg-card-hover), var(--bg-card));
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .overall-sentiment .icon { font-size: 2rem; }
+        .overall-sentiment .info h3 { margin: 0; font-size: 0.9rem; color: var(--text-muted); }
+        .overall-sentiment .info .value { font-size: 1.5rem; font-weight: 700; }
+        
+        /* Loading */
+        .loading { text-align: center; padding: 3rem; color: var(--text-muted); }
+        .loading i { font-size: 2rem; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <!-- Desktop Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand"><i class="fas fa-chart-line"></i><span>CHIBOY</span></div>
+        <div class="sidebar-nav">
+            <a href="/" class="sidebar-link"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
+            <a href="/analysis" class="sidebar-link"><i class="fas fa-search"></i><span>Analysis</span></a>
+            <a href="/calendar" class="sidebar-link"><i class="fas fa-calendar-alt"></i><span>Calendar</span></a>
+            <a href="/sentiment" class="sidebar-link active"><i class="fas fa-fire"></i><span>Sentiment</span></a>
+            <a href="/trades" class="sidebar-link"><i class="fas fa-history"></i><span>Trades</span></a>
+        </div>
+        <div class="sidebar-footer"><span class="live-dot"></span><span style="font-size:0.7rem;color:#8b949e;">Live</span></div>
+    </nav>
+    
+    <!-- Mobile Bottom Nav -->
+    <nav class="mobile-bottom-nav">
+        <a href="/" class="bottom-nav-item"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
+        <a href="/analysis" class="bottom-nav-item"><i class="fas fa-search"></i><span>Analysis</span></a>
+        <a href="/calendar" class="bottom-nav-item"><i class="fas fa-calendar-alt"></i><span>Calendar</span></a>
+        <a href="/sentiment" class="bottom-nav-item active"><i class="fas fa-fire"></i><span>Sentiment</span></a>
+        <a href="/trades" class="bottom-nav-item"><i class="fas fa-history"></i><span>Trades</span></a>
+    </nav>
+    
+    <div class="main">
+        <div class="header">
+            <h1><i class="fas fa-fire" style="color:var(--accent-gold);"></i> Market Sentiment</h1>
+            <span class="last-update" id="lastUpdate"><i class="fas fa-clock"></i> Updating...</span>
+        </div>
+        
+        <!-- Overall Sentiment -->
+        <div class="overall-sentiment" id="overallSentiment">
+            <div class="icon"><i class="fas fa-chart-pie"></i></div>
+            <div class="info">
+                <h3>Overall Market</h3>
+                <div class="value" id="overallValue">Loading...</div>
+            </div>
+        </div>
+        
+        <!-- Currency Strength -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-coins"></i>
+                <h2>Currency Strength</h2>
+                <span class="badge">7 Currencies</span>
+            </div>
+            <div class="sentiment-grid" id="currencyGrid">
+                <div class="loading"><i class="fas fa-spinner fa-spin"></i></div>
+            </div>
+        </div>
+        
+        <!-- Symbol Sentiment -->
+        <div class="section-card">
+            <div class="section-title">
+                <i class="fas fa-chart-line"></i>
+                <h2>Symbol Sentiment</h2>
+                <span class="badge" id="symbolCount">7 Symbols</span>
+            </div>
+            <div class="sentiment-grid" id="symbolGrid">
+                <div class="loading"><i class="fas fa-spinner fa-spin"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const currencyFlags = { 'USD': '🇺🇸', 'EUR': '🇪🇺', 'GBP': '🇬🇧', 'JPY': '🇯🇵', 'AUD': '🇦🇺', 'CAD': '🇨🇦', 'CHF': '🇨🇭' };
+        const cryptoIcons = { 'BTCUSDT': '₿', 'ETHUSDT': 'Ξ', 'SOLUSDT': '◎', 'XAUUSD': '🥇' };
+        const currencyOrder = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF'];
+        const symbolOrder = ['XAUUSD', 'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'EURUSD', 'GBPUSD', 'USDJPY'];
+        
+        function getSentimentClass(value) {
+            if (value > 52) return 'bullish';
+            if (value < 48) return 'bearish';
+            return 'neutral';
+        }
+        
+        function getGaugeClass(value) {
+            if (value > 52) return 'gauge-bullish';
+            if (value < 48) return 'gauge-bearish';
+            return 'gauge-neutral';
+        }
+        
+        function renderCurrencyCard(code, info) {
+            const sentiment = info.change > 0 ? 'bullish' : info.change < 0 ? 'bearish' : 'neutral';
+            const width = Math.min(100, Math.max(0, info.strength));
+            const gaugeClass = getGaugeClass(info.strength);
+            
+            return `
+                <div class="sentiment-card">
+                    <div class="icon">${currencyFlags[code] || '💱'}</div>
+                    <div class="code">${code}</div>
+                    <div class="value ${sentiment}">${info.strength}</div>
+                    <div class="change ${sentiment}">${info.change >= 0 ? '+' : ''}${info.change}%</div>
+                    <div class="gauge-container">
+                        <div class="gauge-center"></div>
+                        <div class="gauge-fill ${gaugeClass}" style="width: ${width}%"></div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderSymbolCard(sym) {
+            const isCrypto = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'].includes(sym.symbol);
+            const sentimentClass = getSentimentClass(sym.long);
+            const gaugeClass = getGaugeClass(sym.long);
+            const icon = cryptoIcons[sym.symbol] || '📊';
+            const width = Math.min(100, Math.max(0, sym.long));
+            
+            return `
+                <div class="sentiment-card">
+                    <div class="icon">${icon}</div>
+                    <div class="code">${sym.symbol}</div>
+                    ${isCrypto ? '<div class="crypto-badge">CRYPTO</div>' : ''}
+                    <div class="value ${sentimentClass}">${sym.long}%</div>
+                    <div class="change ${sentimentClass}">${sym.change >= 0 ? '+' : ''}${sym.change}%</div>
+                    <div class="gauge-container">
+                        <div class="gauge-center"></div>
+                        <div class="gauge-fill ${gaugeClass}" style="width: ${width}%"></div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function loadSentiment() {
+            try {
+                const response = await fetch('/api/sentiment');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update timestamp
+                    const now = new Date();
+                    document.getElementById('lastUpdate').innerHTML = '<i class="fas fa-clock"></i> ' + now.toLocaleTimeString();
+                    
+                    // Overall sentiment
+                    const avgLong = data.symbols.reduce((sum, s) => sum + s.long, 0) / data.symbols.length;
+                    const overallClass = getSentimentClass(avgLong);
+                    const overallIcon = overallClass === 'bullish' ? '📈' : overallClass === 'bearish' ? '📉' : '➡️';
+                    document.getElementById('overallValue').innerHTML = `<span class="${overallClass}">${overallIcon} ${data.overall_sentiment}</span>`;
+                    document.getElementById('overallSentiment').querySelector('.icon').innerHTML = `<i class="fas fa-chart-pie ${overallClass}"></i>`;
+                    
+                    // Currency grid
+                    const currencies = data.currencies || {};
+                    const sortedCurrencies = currencyOrder.filter(c => currencies[c]).concat(Object.keys(currencies).filter(c => !currencyOrder.includes(c)));
+                    document.getElementById('currencyGrid').innerHTML = sortedCurrencies.map(code => renderCurrencyCard(code, currencies[code])).join('');
+                    
+                    // Symbol grid
+                    const symbols = data.symbols || [];
+                    const sortedSymbols = symbolOrder.map(s => symbols.find(sym => sym.symbol === s)).filter(Boolean);
+                    document.getElementById('symbolGrid').innerHTML = sortedSymbols.map(renderSymbolCard).join('');
+                    document.getElementById('symbolCount').textContent = symbols.length + ' Symbols';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        
+        loadSentiment();
+        setInterval(loadSentiment, 30000);
+    </script>
+</body>
+</html>
