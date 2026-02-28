@@ -2,6 +2,7 @@
 CHIBOY BOT - Web Interface
 ================================
 Flask-based graphical user interface for the trading bot.
+ICT Trading Strategy Implementation
 """
 
 import sys
@@ -13,6 +14,205 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for, f
 from functools import wraps
 import logging
 import threading
+
+# ICT Analysis Functions
+def detect_fvg(highs, lows, closes, index=-1):
+    """
+    Detect Fair Value Gap
+    Bearish FVG: current high < previous low (gap down)
+    Bullish FVG: current low > previous high (gap up)
+    """
+    if index < -2 or len(closes) < 3:
+        return None
+    
+    idx = index if index >= 0 else len(closes) + index
+    
+    if idx < 2 or idx >= len(closes):
+        return None
+    
+    # For bullish: low[index-1] > high[index-2] (gap up)
+    # For bearish: high[index-1] < low[index-2] (gap down)
+    
+    prev_low = lows[idx - 1] if idx > 0 else lows[0]
+    prev_high = highs[idx - 1] if idx > 0 else highs[0]
+    curr_low = lows[idx]
+    curr_high = highs[idx]
+    
+    # Bullish FVG (gap up)
+    if curr_low > prev_high:
+        return {
+            "type": "bullish",
+            "top": curr_low,
+            "bottom": prev_high,
+            "mid": (curr_low + prev_high) / 2
+        }
+    # Bearish FVG (gap down)
+    elif curr_high < prev_low:
+        return {
+            "type": "bearish",
+            "top": prev_low,
+            "bottom": curr_high,
+            "mid": (prev_low + curr_high) / 2
+        }
+    
+    return None
+
+
+def detect_order_blocks(highs, lows, closes, lookback=10):
+    """
+    Detect Order Blocks
+    Bullish OB: Bearish candle that broke structure, followed by upward move
+    Bearish OB: Bullish candle that broke structure, followed by downward move
+    """
+    order_blocks = []
+    
+    for i in range(lookback, len(closes) - 1):
+        # Check if this is a break of structure candle
+        prev_high = max(highs[i-lookback:i])
+        prev_low = min(lows[i-lookback:i])
+        
+        # Bullish OB: price broke above previous high then pulled back
+        if highs[i] > prev_high and closes[i] > opens[i] if i < len(opens) else closes[i] > (highs[i] + lows[i]) / 2:
+            # Check if there's a retracement after
+            if i + 3 < len(closes):
+                retracement_low = min(lows[i:i+5])
+                if retracement_low > lows[i]:  # Pullback stayed above OB
+                    order_blocks.append({
+                        "type": "bullish",
+                        "index": i,
+                        "high": highs[i],
+                        "low": lows[i],
+                        "close": closes[i],
+                        "price": lows[i]  # Entry at OB low
+                    })
+        
+        # Bearish OB: price broke below previous low then pulled back
+        if lows[i] < prev_low and closes[i] < opens[i] if i < len(opens) else closes[i] < (highs[i] + lows[i]) / 2:
+            if i + 3 < len(closes):
+                retracement_high = max(highs[i:i+5])
+                if retracement_high < highs[i]:  # Pullback stayed below OB
+                    order_blocks.append({
+                        "type": "bearish",
+                        "index": i,
+                        "high": highs[i],
+                        "low": lows[i],
+                        "close": closes[i],
+                        "price": highs[i]  # Entry at OB high
+                    })
+    
+    return order_blocks[-5:]  # Return last 5 order blocks
+
+
+def detect_liquidity_zones(highs, lows, lookback=20):
+    """
+    Detect Liquidity Zones (sweep areas)
+    - Recent highs (liquidity above)
+    - Recent lows (liquidity below)
+    """
+    recent_highs = sorted(set(highs[-lookback:]), reverse=True)[:3]
+    recent_lows = sorted(set(lows[-lookback:]))[:3]
+    
+    return {
+        "above": [{"price": h, "type": "liquidity"} for h in recent_highs],
+        "below": [{"price": l, "type": "liquidity"} for l in recent_lows]
+    }
+
+
+def detect_market_structure(closes, highs, lows):
+    """
+    Detect Market Structure (Swing Highs/Lows and BOS)
+    """
+    structures = []
+    
+    for i in range(5, len(closes) - 1):
+        # Swing high
+        if highs[i] > highs[i-1] and highs[i] > highs[i-2] and highs[i] > highs[i+1]:
+            structures.append({"type": "swing_high", "price": highs[i], "index": i})
+        # Swing low
+        if lows[i] < lows[i-1] and lows[i] < lows[i-2] and lows[i] < lows[i+1]:
+            structures.append({"type": "swing_low", "price": lows[i], "index": i})
+    
+    # Check for recent BOS (Break of Structure)
+    recent_swings = structures[-6:] if len(structures) >= 6 else structures
+    bos = None
+    
+    if len(recent_swings) >= 2:
+        # Bullish BOS: price broke above recent swing high
+        swing_highs = [s for s in recent_swings if s["type"] == "swing_high"]
+        if swing_highs and closes[-1] > swing_highs[-1]["price"]:
+            bos = {"type": "bullish", "broken_level": swing_highs[-1]["price"]}
+        
+        # Bearish BOS: price broke below recent swing low
+        swing_lows = [s for s in recent_swings if s["type"] == "swing_low"]
+        if swing_lows and closes[-1] < swing_lows[-1]["price"]:
+            bos = {"type": "bearish", "broken_level": swing_lows[-1]["price"]}
+    
+    return {
+        "structures": structures[-10:],  # Last 10 swing points
+        "bos": bos
+    }
+
+
+def analyze_ict_setup(closes, opens, highs, lows):
+    """
+    Complete ICT Setup Analysis
+    Returns trading setup based on ICT methodology
+    """
+    analysis = {
+        "fvgs": [],
+        "order_blocks": [],
+        "liquidity": {},
+        "structure": {},
+        "signal": None,
+        "entry_price": None,
+        "stop_loss": None,
+        "take_profit": None,
+        "risk_reward": None
+    }
+    
+    # Get FVGs
+    for i in [-1, -3, -5]:
+        fvg = detect_fvg(highs, lows, closes, i)
+        if fvg:
+            analysis["fvgs"].append(fvg)
+    
+    # Get liquidity zones
+    analysis["liquidity"] = detect_liquidity_zones(highs, lows)
+    
+    # Get market structure
+    analysis["structure"] = detect_market_structure(closes, highs, lows)
+    
+    # Determine signal based on structure
+    bos = analysis["structure"].get("bos")
+    current_price = closes[-1] if closes else 0
+    
+    if bos:
+        if bos["type"] == "bullish":
+            # Look for bullish entry
+            analysis["signal"] = "BUY"
+            # Entry at recent low or FVG
+            if analysis["fvgs"] and analysis["fvgs"][0]["type"] == "bullish":
+                analysis["entry_price"] = round(analysis["fvgs"][0]["bottom"], 5)
+            else:
+                analysis["entry_price"] = round(min(lows[-5:]), 5)
+            analysis["stop_loss"] = round(min(lows[-10:]) * 0.998, 5)  # 0.2% stop
+            # Target: 3R
+            risk = analysis["entry_price"] - analysis["stop_loss"]
+            analysis["take_profit"] = round(analysis["entry_price"] + (risk * 3), 5)
+            analysis["risk_reward"] = "1:3"
+            
+        elif bos["type"] == "bearish":
+            analysis["signal"] = "SELL"
+            if analysis["fvgs"] and analysis["fvgs"][0]["type"] == "bearish":
+                analysis["entry_price"] = round(analysis["fvgs"][0]["top"], 5)
+            else:
+                analysis["entry_price"] = round(max(highs[-5:]), 5)
+            analysis["stop_loss"] = round(max(highs[-10:]) * 1.002, 5)
+            risk = analysis["stop_loss"] - analysis["entry_price"]
+            analysis["take_profit"] = round(analysis["entry_price"] - (risk * 3), 5)
+            analysis["risk_reward"] = "1:3"
+    
+    return analysis
 
 # Import database module
 import database
@@ -926,6 +1126,7 @@ def api_analyze_symbol_full(symbol):
                     closes = [c for c in quote.get('close', []) if c is not None]
                     highs = [h for h in quote.get('high', []) if h is not None]
                     lows = [l for l in quote.get('low', []) if l is not None]
+                    opens = [o for o in quote.get('open', []) if o is not None]
                     
                     current_price = closes[-1] if closes else 1.35
                     
@@ -976,13 +1177,29 @@ def api_analyze_symbol_full(symbol):
             current_price = current_price - adjustment
             timeframe_analysis = {tf: {**data, "price": data["price"] - adjustment} for tf, data in timeframe_analysis.items()}
         
+        # ICT Analysis
+        ict_analysis = analyze_ict_setup(closes, opens, highs, lows) if 'closes' in dir() and len(closes) > 10 else {
+            "signal": None, "entry_price": None, "stop_loss": None, "take_profit": None, "risk_reward": None,
+            "fvgs": [], "order_blocks": [], "liquidity": {}, "structure": {}
+        }
+        
         return jsonify({
             "success": True,
             "symbol": symbol,
             "current_price": current_price,  # Full precision
             "overall_market": overall,
             "timeframes": timeframe_analysis,
-            "signal": None
+            "signal": ict_analysis.get("signal"),
+            "ict": {
+                "signal": ict_analysis.get("signal"),
+                "entry_price": ict_analysis.get("entry_price"),
+                "stop_loss": ict_analysis.get("stop_loss"),
+                "take_profit": ict_analysis.get("take_profit"),
+                "risk_reward": ict_analysis.get("risk_reward"),
+                "fvgs": ict_analysis.get("fvgs", []),
+                "liquidity": ict_analysis.get("liquidity", {}),
+                "structure": ict_analysis.get("structure", {})
+            }
         })
         
     except Exception as e:

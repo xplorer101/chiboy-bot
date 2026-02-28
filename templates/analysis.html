@@ -705,42 +705,62 @@
                 
                 // Update signal
                 const signalBody = document.getElementById('signalBody');
-                const signal = data.signal;
+                const ict = data.ict || {};
+                const signal = ict.signal;
                 
                 if (signal) {
                     // Show browser notification for new signal
                     notifySignal(signal);
                     
-                    const opp = signal;
+                    const entryPrice = ict.entry_price;
+                    const sl = ict.stop_loss;
+                    const tp = ict.take_profit;
+                    const rr = ict.risk_reward || '3';
+                    
+                    // Calculate R:R
+                    let riskReward = rr;
+                    if (entryPrice && sl && tp) {
+                        const risk = Math.abs(entryPrice - sl);
+                        const reward = Math.abs(tp - entryPrice);
+                        riskReward = (reward / risk).toFixed(1);
+                    }
+                    
+                    const directionClass = signal === 'BUY' ? 'long' : 'short';
+                    
                     signalBody.innerHTML = `
                         <div class="signal-card">
                             <div class="signal-header">
-                                <span class="signal-title">🔒 LIMIT ORDER</span>
-                                <span class="direction-badge direction-${opp.direction}">
-                                    <i class="fas fa-arrow-${opp.direction === 'long' ? 'up' : 'down'}"></i>
-                                    ${opp.direction.toUpperCase()}
+                                <span class="signal-title">🎯 ICT TREND CONTINUATION</span>
+                                <span class="direction-badge direction-${directionClass}">
+                                    <i class="fas fa-arrow-${signal === 'BUY' ? 'up' : 'down'}"></i>
+                                    ${signal}
                                 </span>
                             </div>
                             <div class="signal-prices">
                                 <div class="signal-price">
                                     <div class="signal-price-label">Entry</div>
-                                    <div class="signal-price-value entry">${formatPrice(opp.entry_price, symbol)}</div>
+                                    <div class="signal-price-value entry">${entryPrice ? formatPrice(entryPrice, symbol) : '---'}</div>
                                 </div>
                                 <div class="signal-price">
                                     <div class="signal-price-label">Stop Loss</div>
-                                    <div class="signal-price-value sl">${formatPrice(opp.stop_loss, symbol)}</div>
+                                    <div class="signal-price-value sl">${sl ? formatPrice(sl, symbol) : '---'}</div>
                                 </div>
                                 <div class="signal-price">
                                     <div class="signal-price-label">Take Profit</div>
-                                    <div class="signal-price-value tp">${formatPrice(opp.take_profit, symbol)}</div>
+                                    <div class="signal-price-value tp">${tp ? formatPrice(tp, symbol) : '---'}</div>
                                 </div>
                             </div>
                             <div style="text-align: center; margin-bottom: 1rem;">
-                                <span style="color: #fff; font-weight: 600;">R:R 1:${opp.risk_reward}</span>
+                                <span style="color: #fff; font-weight: 600;">Risk:Reward 1:${riskReward}</span>
                             </div>
                             <div class="signal-reasons">
-                                <strong style="color: #fff;">Entry Criteria:</strong>
-                                <ul class="mb-0 mt-2">${opp.reasons.map(r => `<li>${r}</li>`).join('')}</ul>
+                                <strong style="color: #fff;">ICT Setup:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>📊 Market Structure Shift Detected</li>
+                                    ${ict.fvgs && ict.fvgs.length > 0 ? `<li>📈 Fair Value Gap: ${ict.fvgs[0].type.toUpperCase()}</li>` : ''}
+                                    ${ict.liquidity && (ict.liquidity.above || ict.liquidity.below) ? '<li>💧 Liquidity Zones Identified</li>' : ''}
+                                    <li>🎯 Entry at Order Block / FVG</li>
+                                </ul>
                             </div>
                             <button class="btn btn-primary mt-3" onclick="openTrade()">
                                 <i class="fas fa-play me-2"></i>Execute Trade
