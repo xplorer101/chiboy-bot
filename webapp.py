@@ -1114,51 +1114,95 @@ def api_analyze_symbol_full(symbol):
         elif symbol == 'USOIL':
             yahoo_symbol = 'CL=F'
         
-        # Make a SINGLE call to get 1H data (most recent candles + current price)
-        try:
-            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}?interval=1h&range=5d"
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=3) as response:
-                data = json.loads(response.read().decode())
-                result = data.get('chart', {}).get('result', [{}])
-                if result and result[0].get('indicators'):
-                    quote = result[0]['indicators']['quote'][0]
-                    closes = [c for c in quote.get('close', []) if c is not None]
-                    highs = [h for h in quote.get('high', []) if h is not None]
-                    lows = [l for l in quote.get('low', []) if l is not None]
-                    opens = [o for o in quote.get('open', []) if o is not None]
-                    
-                    current_price = closes[-1] if closes else 1.35
-                    
-                    # Use 1H data for all timeframes (simplified)
-                    timeframe_analysis = {}
-                    
-                    # Calculate trends from available data
-                    if closes:
-                        recent = closes[-10:] if len(closes) >= 10 else closes
-                        ma = sum(recent) / len(recent)
-                        high = max(highs[-20:]) if highs else max(closes)
-                        low = min(lows[-20:]) if lows else min(closes)
-                        range_pct = (high - low) / low * 100 if low else 0
+        # Fetch data for multiple timeframes
+        timeframe_data = {}
+        
+        # Define intervals to fetch
+        intervals = {
+            '1H': '1h',
+            '4H': '4h',
+            '1D': '1d',
+            '1W': '1wk'
+        }
+        
+        for tf_name, interval in intervals.items():
+            try:
+                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}?interval={interval}&range=30d"
+                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=3) as response:
+                    data = json.loads(response.read().decode())
+                    result = data.get('chart', {}).get('result', [{}])
+                    if result and result[0].get('indicators'):
+                        quote = result[0]['indicators']['quote'][0]
+                        tf_closes = [c for c in quote.get('close', []) if c is not None]
+                        tf_highs = [h for h in quote.get('high', []) if h is not None]
+                        tf_lows = [l for l in quote.get('low', []) if l is not None]
+                        tf_opens = [o for o in quote.get('open', []) if o is not None]
                         
-                        trend = "Ranging" if range_pct < 1 else ("Bullish" if current_price > ma else "Bearish")
-                        
-                        # Set same data for all timeframes
-                        for tf in ['1H', '4H', '1D', '1W']:
-                            timeframe_analysis[tf] = {
-                                "trend": trend,
-                                "price": current_price,  # Full precision
-                                "ma": round(ma, 2),
-                                "high": round(high, 2),
-                                "low": round(low, 2),
-                                "range_pct": round(range_pct, 2)
+                        if tf_closes:
+                            tf_price = tf_closes[-1]
+                            tf_ma = sum(tf_closes[-10:]) / min(10, len(tf_closes))
+                            tf_high = max(tf_highs[-20:]) if tf_highs else tf_price
+                            tf_low = min(tf_lows[-20:]) if tf_lows else tf_price
+                            tf_range = (tf_high - tf_low) / tf_low * 100 if tf_low else 0
+                            tf_trend = "Ranging" if tf_range < 1 else ("Bullish" if tf_price > tf_ma else "Bearish")
+                            
+                            timeframe_data[tf_name] = {
+                                "trend": tf_trend,
+                                "price": tf_price,
+                                "ma": round(tf_ma, 5),
+                                "high": round(tf_high, 5),
+                                "low": round(tf_low, 5),
+                                "range_pct": round(tf_range, 2),
+                                "closes": tf_closes,
+                                "highs": tf_highs,
+                                "lows": tf_lows,
+                                "opens": tf_opens
                             }
-                else:
-                    raise Exception("No data")
-        except Exception as e:
-            logger.error(f"Yahoo API error: {e}")
+            except Exception as e:
+                logger.info(f"Failed to fetch {tf_name} data: {e}")
+                continue
+        
+        # Set current price from 1H data
+        if '1H' in timeframe_data:
+            current_price = timeframe_data['1H'].get('price', 1.35)
+        else:
             current_price = 1.35
-            timeframe_analysis = {tf: {"trend": "Unknown", "price": current_price, "ma": current_price, "high": current_price, "low": current_price, "range_pct": 0} for tf in ['1H', '4H', '1D', '1W']}
+        
+        # Use 1H data for current_price and ICT
+        timeframe_analysis = {}
+        
+        # Calculate 1H analysis from timeframe_data
+        if '1H' in timeframe_data:
+            tf_data = timeframe_data['1H']
+            timeframe_analysis['1H'] = {
+                "trend": tf_data["trend"],
+                "price": tf_data["price"],
+                "ma": tf_data["ma"],
+                "high": tf_data["high"],
+                "low": tf_data["low"],
+                "range_pct": tf_data["range_pct"]
+            }
+        
+        # Merge with other timeframes
+        for tf in ['4H', '1D', '1W']:
+            if tf in timeframe_data:
+                tf_data = timeframe_data[tf]
+                timeframe_analysis[tf] = {
+                    "trend": tf_data["trend"],
+                    "price": tf_data["price"],
+                    "ma": tf_data["ma"],
+                    "high": tf_data["high"],
+                    "low": tf_data["low"],
+                    "range_pct": tf_data["range_pct"]
+                }
+            else:
+                # Fallback to 1H data
+                timeframe_analysis[tf] = timeframe_analysis.get('1H', {"trend": "Unknown", "price": current_price, "ma": current_price, "high": current_price, "low": current_price, "range_pct": 0})
+        
+        # Ensure 1H exists
+        if '1H' not in timeframe_analysis:
+            timeframe_analysis['1H'] = {"trend": "Unknown", "price": current_price, "ma": current_price, "high": current_price, "low": current_price, "range_pct": 0}
         # Determine overall market direction
         bullish_count = sum(1 for t in timeframe_analysis.values() if t["trend"] == "Bullish")
         bearish_count = sum(1 for t in timeframe_analysis.values() if t["trend"] == "Bearish")
@@ -1177,11 +1221,15 @@ def api_analyze_symbol_full(symbol):
             current_price = current_price - adjustment
             timeframe_analysis = {tf: {**data, "price": data["price"] - adjustment} for tf, data in timeframe_analysis.items()}
         
-        # ICT Analysis
-        ict_analysis = analyze_ict_setup(closes, opens, highs, lows) if 'closes' in dir() and len(closes) > 10 else {
-            "signal": None, "entry_price": None, "stop_loss": None, "take_profit": None, "risk_reward": None,
-            "fvgs": [], "order_blocks": [], "liquidity": {}, "structure": {}
-        }
+        # ICT Analysis - use 1H data
+        if '1H' in timeframe_data and len(timeframe_data['1H'].get('closes', [])) > 10:
+            tf_data = timeframe_data['1H']
+            ict_analysis = analyze_ict_setup(tf_data.get('closes', []), tf_data.get('opens', []), tf_data.get('highs', []), tf_data.get('lows', []))
+        else:
+            ict_analysis = {
+                "signal": None, "entry_price": None, "stop_loss": None, "take_profit": None, "risk_reward": None,
+                "fvgs": [], "order_blocks": [], "liquidity": {}, "structure": {}
+            }
         
         return jsonify({
             "success": True,
