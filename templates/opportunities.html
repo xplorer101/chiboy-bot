@@ -29,59 +29,7 @@
             padding-left: 80px;
         }
         
-        /* Sidebar */
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 80px;
-            background: var(--bg-card);
-            border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 1rem 0;
-            z-index: 1000;
-        }
-        
-        .sidebar-brand { font-size: 1.5rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 2rem; display: flex; flex-direction: column; align-items: center; }
-        .sidebar-brand i { font-size: 1.8rem; }
-        .sidebar-brand span { font-size: 0.7rem; margin-top: 0.25rem; }
-        
-        .sidebar-nav { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
-        
-        .sidebar-link {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: var(--text-muted);
-            text-decoration: none;
-            padding: 0.75rem 0.5rem;
-            border-radius: 8px;
-            transition: all 0.2s;
-            font-size: 0.7rem;
-            width: 70px;
-        }
-        
-        .sidebar-link i { font-size: 1.3rem; margin-bottom: 0.25rem; }
-        .sidebar-link:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
-        .sidebar-link.active { background: var(--accent-gold); color: #000; }
-        
-        .sidebar-footer { display: flex; flex-direction: column; align-items: center; padding: 1rem 0; }
-        
-        .live-dot { width: 8px; height: 8px; background: var(--accent-green); border-radius: 50%; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        
-        /* Mobile */
-        .mobile-bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border-color); padding: 0.5rem; z-index: 1000; }
-        @media (max-width: 768px) { body { padding-left: 0; padding-bottom: 60px; } .sidebar { display: none; } .mobile-bottom-nav { display: flex; justify-content: space-around; } }
-        
-        .mobile-bottom-nav a { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); text-decoration: none; padding: 0.5rem; font-size: 0.7rem; flex: 1; }
-        .mobile-bottom-nav a i { font-size: 1.25rem; margin-bottom: 0.25rem; }
-        .mobile-bottom-nav a.active { color: var(--accent-gold); }
-        
-        /* Main */
+         */
         .main { margin-left: 80px; padding: 1.5rem; }
         @media (max-width: 768px) { .main { margin-left: 0; } }
         
@@ -89,6 +37,9 @@
         .header h1 { margin: 0; font-size: 1.8rem; display: flex; align-items: center; gap: 0.5rem; }
         .header .refresh-btn { background: var(--accent-gold); color: #000; border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
         .header .refresh-btn:hover { background: #d4a020; }
+        .header .refresh-btn.loading { pointer-events: none; opacity: 0.7; }
+        .header .refresh-btn .fa-sync-alt { transition: transform 0.3s; }
+        .header .refresh-btn.loading .fa-sync-alt { animation: spin 1s linear infinite; }
         
         .last-update { color: var(--text-muted); font-size: 0.85rem; }
         
@@ -138,37 +89,100 @@
         .loading i { font-size: 2rem; animation: spin 1s linear infinite; color: var(--accent-gold); }
         @keyframes spin { 100% { transform: rotate(360deg); } }
         
-        .summary-bar { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
-        .summary-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem 1.5rem; display: flex; align-items: center; gap: 1rem; }
-        .summary-card .icon { font-size: 1.5rem; }
-        .summary-card .count { font-size: 1.5rem; font-weight: 700; }
-        .summary-card .label { font-size: 0.85rem; color: var(--text-muted); }
+        .summary-bar { 
+            display: flex; 
+            justify-content: center; 
+            gap: 2rem; 
+            margin-bottom: 3rem; 
+            flex-wrap: wrap;
+            padding: 2rem 0;
+        }
+        
+        .summary-card { 
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-card-hover) 100%); 
+            border: 1px solid var(--border-color); 
+            border-radius: 24px; 
+            padding: 2rem 3rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 1.5rem;
+            min-width: 280px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .summary-card .icon { font-size: 3rem; }
+        .summary-card .count { font-size: 3.5rem; font-weight: 700; }
+        .summary-card .label { font-size: 1.1rem; color: var(--text-muted); }
+        
+        .summary-card.buy { border-color: var(--accent-green); }
+        .summary-card.buy .count { color: var(--accent-green); }
+        .summary-card.sell { border-color: var(--accent-red); }
+        .summary-card.sell .count { color: var(--accent-red); }
+        .summary-card.total { border-color: var(--accent-blue); }
+        .summary-card.total .count { color: var(--accent-blue); }
+    
+        /* Side Navigation */
+        .side-nav {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 70px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem 0;
+            z-index: 1000;
+        }
+        
+        .side-brand { font-size: 1.5rem; color: var(--accent-gold); margin-bottom: 2rem; }
+        
+        .side-links { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
+        
+        .side-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 0.75rem 0.5rem;
+            border-radius: 8px;
+            font-size: 0.65rem;
+            width: 60px;
+            transition: all 0.2s;
+        }
+        
+        .side-link i { font-size: 1.3rem; margin-bottom: 0.25rem; }
+        .side-link:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+        .side-link.active { background: var(--accent-gold); color: #000; }
+        
+        .side-status { display: flex; flex-direction: column; align-items: center; font-size: 0.65rem; color: var(--text-muted); }
+        
+        body { padding-left: 70px; }
+
     </style>
 </head>
 <body>
-    <!-- Desktop Sidebar -->
-    <nav class="sidebar">
-        <div class="sidebar-brand"><i class="fas fa-chart-line"></i><span>CHIBOY</span></div>
-        <div class="sidebar-nav">
-            <a href="/" class="sidebar-link"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
-            <a href="/opportunities" class="sidebar-link active"><i class="fas fa-bullseye"></i><span>Opportunities</span></a>
-            <a href="/analysis" class="sidebar-link"><i class="fas fa-search"></i><span>Analysis</span></a>
-            <a href="/calendar" class="sidebar-link"><i class="fas fa-calendar-alt"></i><span>Calendar</span></a>
-            <a href="/sentiment" class="sidebar-link"><i class="fas fa-fire"></i><span>Sentiment</span></a>
-            <a href="/trades" class="sidebar-link"><i class="fas fa-history"></i><span>Trades</span></a>
+
+    <!-- Side Navigation -->
+    <nav class="side-nav">
+        <div class="side-brand"><i class="fas fa-chart-line"></i></div>
+        <div class="side-links">
+            <a href="/" class="side-link"><i class="fas fa-home"></i>Home</a>
+            <a href="/opportunities" class="side-link active"><i class="fas fa-bullseye"></i>Opps</a>
+            <a href="/analysis" class="side-link"><i class="fas fa-search"></i>Analysis</a>
+            <a href="/sentiment" class="side-link"><i class="fas fa-fire"></i>Sentiment</a>
+            <a href="/trades" class="side-link"><i class="fas fa-history"></i>Trades</a>
         </div>
-        <div class="sidebar-footer"><span class="live-dot"></span><span style="font-size:0.7rem;color:#8b949e;">Live</span></div>
+        <div class="side-status">
+            <span class="live-dot"></span>Live
+        </div>
     </nav>
-    
-    <!-- Mobile Bottom Nav -->
-    <nav class="mobile-bottom-nav">
-        <a href="/" class="bottom-nav-item"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
-        <a href="/opportunities" class="bottom-nav-item active"><i class="fas fa-bullseye"></i><span>Opportunities</span></a>
-        <a href="/analysis" class="bottom-nav-item"><i class="fas fa-search"></i><span>Analysis</span></a>
-        <a href="/calendar" class="bottom-nav-item"><i class="fas fa-calendar-alt"></i><span>Calendar</span></a>
-        <a href="/sentiment" class="bottom-nav-item"><i class="fas fa-fire"></i><span>Sentiment</span></a>
-        <a href="/trades" class="bottom-nav-item"><i class="fas fa-history"></i><span>Trades</span></a>
-    </nav>
+
+    <!-- Desktop Sidebar -->
     
     <div class="main">
         <div class="header">
@@ -183,22 +197,22 @@
         </div>
         
         <div class="summary-bar" id="summaryBar">
-            <div class="summary-card">
+            <div class="summary-card buy">
                 <div class="icon" style="color:var(--accent-green);"><i class="fas fa-arrow-up"></i></div>
                 <div>
                     <div class="count" id="buyCount">0</div>
                     <div class="label">Buy Signals</div>
                 </div>
             </div>
-            <div class="summary-card">
+            <div class="summary-card sell">
                 <div class="icon" style="color:var(--accent-red);"><i class="fas fa-arrow-down"></i></div>
                 <div>
                     <div class="count" id="sellCount">0</div>
                     <div class="label">Sell Signals</div>
                 </div>
             </div>
-            <div class="summary-card">
-                <div class="icon" style="color:var(--text-muted);"><i class="fas fa-clock"></i></div>
+            <div class="summary-card total">
+                <div class="icon" style="color:var(--accent-blue);"><i class="fas fa-chart-bar"></i></div>
                 <div>
                     <div class="count" id="totalCount">0</div>
                     <div class="label">Total Scanned</div>
@@ -228,6 +242,9 @@
         
         async function loadOpportunities() {
             const grid = document.getElementById('opportunityGrid');
+            const btn = document.querySelector('.refresh-btn');
+            btn.classList.add('loading');
+            
             grid.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Scanning for opportunities...</div>';
             
             let opportunities = [];
@@ -269,6 +286,9 @@
             document.getElementById('sellCount').textContent = sellCount;
             document.getElementById('totalCount').textContent = symbols.length;
             document.getElementById('lastUpdate').innerHTML = '<i class="fas fa-clock"></i> Last updated: ' + new Date().toLocaleTimeString();
+            
+            // Remove loading state
+            btn.classList.remove('loading');
             
             // Render opportunities
             if (opportunities.length === 0) {
@@ -324,8 +344,8 @@
         // Load on page load
         loadOpportunities();
         
-        // Auto-refresh every 60 seconds
-        setInterval(loadOpportunities, 60000);
+        // Auto-refresh every 15 seconds for real-time updates
+        setInterval(loadOpportunities, 15000);
     </script>
 </body>
 </html>

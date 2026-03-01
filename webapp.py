@@ -358,16 +358,21 @@ def analyze_ict_setup_full(timeframe_data, htf_data=None):
         elif last_low:
             reasons.append(f"📍 Near liquidity zone at {last_low:.5f}")
         
-        # Look for bullish OB near current price
-        for ob in bullish_obs:
-            # For BUY: entry can be below or slightly above current price (within 0.8%)
-            price_diff_pct = abs(ob["entry_price"] - current_price) / current_price
+        # Look for bullish OB - prefer OB below or near current price (discount entry)
+        # Sort by distance from current price - prefer closer OBs
+        sorted_bullish = sorted(bullish_obs, key=lambda x: abs(x.get("entry_price", 0) - current_price))
+        
+        for ob in sorted_bullish:
+            ob_entry = ob.get("entry_price", 0)
+            # For BUY: prefer entry below current price (discount) or slightly above (within 0.4%)
+            price_diff_pct = abs(ob_entry - current_price) / current_price
             
-            if price_diff_pct < 0.008:  # Within 0.8%
+            # Only accept OBs within 0.4% AND prefer below or at current price
+            if price_diff_pct < 0.004 and ob_entry <= current_price * 1.002:
                 # Calculate risk/reward
-                sl_distance = max(ob["high"] - ob["low"], current_price * 0.002)
-                entry_price = round(ob["entry_price"], 5)
-                stop_loss = round(ob["low"] - sl_distance * 0.5, 5)
+                sl_distance = max(ob.get("high", 0) - ob.get("low", 0), current_price * 0.002)
+                entry_price = round(ob_entry, 5)
+                stop_loss = round(ob.get("low", 0) - sl_distance * 0.5, 5)
                 risk = entry_price - stop_loss
                 
                 if risk > 0:
@@ -387,15 +392,19 @@ def analyze_ict_setup_full(timeframe_data, htf_data=None):
         elif last_high:
             reasons.append(f"📍 Near liquidity zone at {last_high:.5f}")
         
-        # Look for bearish OB near current price
-        for ob in bearish_obs:
-            # For SELL: entry can be above or slightly below current price (within 0.8%)
-            price_diff_pct = abs(ob["entry_price"] - current_price) / current_price
+        # Look for bearish OB - prefer OB above or near current price (premium entry)
+        sorted_bearish = sorted(bearish_obs, key=lambda x: abs(x.get("entry_price", 0) - current_price))
+        
+        for ob in sorted_bearish:
+            ob_entry = ob.get("entry_price", 0)
+            # For SELL: prefer entry above current price (premium) or slightly below (within 0.4%)
+            price_diff_pct = abs(ob_entry - current_price) / current_price
             
-            if price_diff_pct < 0.008:  # Within 0.8%
-                sl_distance = max(ob["high"] - ob["low"], current_price * 0.002)
-                entry_price = round(ob["entry_price"], 5)
-                stop_loss = round(ob["high"] + sl_distance * 0.5, 5)
+            # Only accept OBs within 0.4% AND prefer above or at current price
+            if price_diff_pct < 0.004 and ob_entry >= current_price * 0.998:
+                sl_distance = max(ob.get("high", 0) - ob.get("low", 0), current_price * 0.002)
+                entry_price = round(ob_entry, 5)
+                stop_loss = round(ob.get("high", 0) + sl_distance * 0.5, 5)
                 risk = stop_loss - entry_price
                 
                 if risk > 0:
@@ -1084,6 +1093,18 @@ def api_execute():
         logger.error(f"Trade execution error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
+
+@app.route('/api/notifications/preferences', methods=['GET'])
+def api_notifications_preferences():
+    """Get notification preferences (placeholder)."""
+    return jsonify({
+        "success": True,
+        "preferences": {
+            "enabled": False,
+            "sound": True,
+            "desktop": True
+        }
+    })
 
 @app.route('/api/settings', methods=['GET', 'POST'])
 def api_settings():

@@ -246,55 +246,10 @@
         /* Footer */
         .footer { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem; }
         .footer a { color: var(--accent-gold); text-decoration: none; }
-    
-        /* Top Menu Bar */
-        .menu-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            padding: 0 1.5rem;
-            z-index: 1000;
-        }
-        
-        .menu-brand { display: flex; align-items: center; gap: 0.75rem; margin-right: 2rem; }
-        .menu-brand i { font-size: 1.5rem; color: var(--accent-gold); }
-        .menu-brand span { font-size: 1.25rem; font-weight: 700; color: var(--accent-gold); }
-        
-        .menu-nav { display: flex; gap: 0.5rem; flex: 1; }
-        
-        .menu-link {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            color: var(--text-muted);
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-        }
-        
-        .menu-link:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
-        .menu-link.active { background: var(--accent-gold); color: #000; }
-        
-        .menu-status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-muted); }
-        
-        .live-dot { width: 8px; height: 8px; background: var(--accent-green); border-radius: 50%; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        
-        body { padding-top: 60px; }
-
     </style>
 </head>
 <body>
-
-    <!-- Top Menu Bar -->
+    <!-- Menu Bar -->
     <nav class="menu-bar">
         <div class="menu-brand">
             <i class="fas fa-chart-line"></i>
@@ -304,6 +259,7 @@
             <a href="/" class="menu-link active"><i class="fas fa-home"></i> Dashboard</a>
             <a href="/opportunities" class="menu-link"><i class="fas fa-bullseye"></i> Opportunities</a>
             <a href="/analysis" class="menu-link"><i class="fas fa-search"></i> Analysis</a>
+            <a href="/calendar" class="menu-link"><i class="fas fa-calendar-alt"></i> Calendar</a>
             <a href="/sentiment" class="menu-link"><i class="fas fa-fire"></i> Sentiment</a>
             <a href="/trades" class="menu-link"><i class="fas fa-history"></i> Trades</a>
         </div>
@@ -312,13 +268,21 @@
             <span>Live</span>
         </div>
     </nav>
-
     
     <!-- Mobile Menu Button -->
     <button class="mobile-menu-btn" onclick="toggleMobileMenu()" style="display:none;position:fixed;top:15px;right:15px;background:var(--bg-card);border:1px solid var(--border-color);color:#fff;padding:0.5rem;border-radius:8px;z-index:1001;">
         <i class="fas fa-bars"></i>
     </button>
     
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="/" class="active"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="/opportunities"><i class="fas fa-bullseye"></i> Opportunities</a>
+        <a href="/analysis"><i class="fas fa-search"></i> Analysis</a>
+        <a href="/calendar"><i class="fas fa-calendar-alt"></i> Calendar</a>
+        <a href="/sentiment"><i class="fas fa-fire"></i> Sentiment</a>
+        <a href="/trades"><i class="fas fa-history"></i> Trades</a>
+    </div>
     
     <div class="main">
         <!-- Hero -->
@@ -474,33 +438,13 @@
             return map[tf] || '1h';
         }
         
-        // Force 5 decimal places for forex on chart
-        function getChartDecimals(symbol) {
-            if (symbol && (symbol.includes('JPY'))) return 3;
-            // Default to 5 decimals for forex
-            return 5;
-        }
-        
         function initChart() {
             chart = LightweightCharts.createChart(document.getElementById('chart'), {
                 layout: { background: { type: 'solid', color: '#161b22' }, textColor: '#8b949e' },
                 grid: { vertLines: { color: '#30363d' }, horzLines: { color: '#30363d' } },
                 crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
                 timeScale: { borderColor: '#30363d' },
-                rightPriceScale: { 
-                    borderColor: '#30363d',
-                    scaleMargins: { top: 0.1, bottom: 0.1 }
-                }
-            });
-            
-            candlestickSeries = chart.addCandlestickSeries({
-                upColor: '#3fb950', downColor: '#f85149',
-                borderUpColor: '#3fb950', borderDownColor: '#f85149',
-                wickUpColor: '#3fb950', wickDownColor: '#f85149',
-                priceFormat: {
-                    type: 'custom',
-                    formatter: function(price) { return price.toFixed(5); }
-                }
+                rightPriceScale: { borderColor: '#30363d' }
             });
             
             candlestickSeries = chart.addCandlestickSeries({
@@ -537,13 +481,6 @@
         
         function changeSymbol() {
             currentSymbol = document.getElementById('symbolSelect').value;
-            // Update chart price format on series
-            candlestickSeries.applyOptions({
-                priceFormat: {
-                    type: 'custom',
-                    formatter: function(price) { return price.toFixed(5); }
-                }
-            });
             loadChartData();
         }
         

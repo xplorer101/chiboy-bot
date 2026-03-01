@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CHIBOY BOT - Market Analysis</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -30,64 +31,22 @@
             padding-left: 80px;
         }
         
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 80px;
-            background: var(--bg-card);
-            border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 1rem 0;
-            z-index: 1000;
-        }
         
-        .sidebar-brand {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--accent-gold);
-            margin-bottom: 2rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
         
-        .sidebar-brand i { font-size: 1.8rem; }
-        .sidebar-brand span { font-size: 0.7rem; margin-top: 0.25rem; }
         
-        .sidebar-nav {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            flex: 1;
-        }
         
-        .sidebar-link {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: var(--text-muted);
-            text-decoration: none;
-            padding: 0.75rem 0.5rem;
-            border-radius: 8px;
-            transition: all 0.2s;
-            font-size: 0.7rem;
-            width: 70px;
-        }
         
-        .sidebar-link i { font-size: 1.3rem; margin-bottom: 0.25rem; }
-        .sidebar-link:hover { background: rgba(255,255,255,0.05); color: #fff; }
-        .sidebar-link.active { background: var(--accent-gold); color: #000; }
         
-        .sidebar-footer {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 1rem 0;
-        }
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         .live-dot {
             width: 8px;
@@ -153,6 +112,7 @@
             font-size: 3rem;
             font-weight: 700;
             margin: 1rem 0;
+            color: #8b949e;
         }
         
         .overall-direction.bullish { color: var(--accent-green); }
@@ -294,22 +254,11 @@
         
         @media (max-width: 768px) {
             body { padding-left: 0; padding-bottom: 60px; }
-            .sidebar { display: none; }
-            .mobile-bottom-nav { display: flex !important; }
+            
+            
         }
         
-        .mobile-bottom-nav {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--bg-card);
-            border-top: 1px solid var(--border-color);
-            padding: 0.5rem;
-            justify-content: space-around;
-            z-index: 1000;
-        }
+        
         
         .mobile-bottom-nav a {
             display: flex;
@@ -380,43 +329,31 @@
         .notification-toggle.active .toggle-switch::after {
             transform: translateX(20px);
         }
+    
+        .side-nav { position: fixed; left: 0; top: 0; bottom: 0; width: 70px; background: var(--bg-card); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; padding: 1rem 0; z-index: 1000; }
+        .side-brand { font-size: 1.5rem; color: var(--accent-gold); margin-bottom: 2rem; }
+        .side-links { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
+        .side-link { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); text-decoration: none; padding: 0.75rem 0.5rem; border-radius: 8px; font-size: 0.65rem; width: 60px; }
+        .side-link i { font-size: 1.3rem; margin-bottom: 0.25rem; }
+        .side-link:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+        .side-link.active { background: var(--accent-gold); color: #000; }
+        body { padding-left: 70px; }
+
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <nav class="sidebar">
-        <div class="sidebar-brand">
-            <i class="fas fa-chart-line"></i>
-            <span>CHIBOY</span>
-        </div>
-        <div class="sidebar-nav">
-            <a href="/" class="sidebar-link">
-                <i class="fas fa-tachometer-alt"></i>
-                <span>Dashboard</span>
-            </a>
-            <a href="/analysis" class="sidebar-link active">
-                <i class="fas fa-search"></i>
-                <span>Analysis</span>
-            </a>
-            <a href="/calendar" class="sidebar-link">
-                <i class="fas fa-calendar-alt"></i>
-                <span>Calendar</span>
-            </a>
-            <a href="/sentiment" class="sidebar-link">
-                <i class="fas fa-fire"></i>
-                <span>Sentiment</span>
-            </a>
-            <a href="/opportunities" class="sidebar-link"><i class="fas fa-bullseye"></i><span>Opportunities</span></a>
-            <a href="/trades" class="sidebar-link">
-                <i class="fas fa-history"></i>
-                <span>Trades</span>
-            </a>
-        </div>
-        <div class="sidebar-footer">
-            <span class="live-dot"></span>
-            <span style="font-size: 0.7rem; color: #8b949e;">Live</span>
+
+    <nav class="side-nav">
+        <div class="side-brand"><i class="fas fa-chart-line"></i></div>
+        <div class="side-links">
+            <a href="/" class="side-link"><i class="fas fa-home"></i>Home</a>
+            <a href="/opportunities" class="side-link"><i class="fas fa-bullseye"></i>Opps</a>
+            <a href="/analysis" class="side-link"><i class="fas fa-search"></i>Analysis</a>
+            <a href="/sentiment" class="side-link"><i class="fas fa-fire"></i>Sentiment</a>
+            <a href="/trades" class="side-link"><i class="fas fa-history"></i>Trades</a>
         </div>
     </nav>
+    <!-- Sidebar -->
 
     <!-- Main Content -->
     <div class="main-content">
@@ -427,8 +364,8 @@
                     <i class="fas fa-bell" id="notifIcon" style="color: #8b949e;"></i>
                     <div class="toggle-switch" id="notifSwitch"></div>
                 </div>
-                <button onclick="analyzeSymbol(currentSymbol)" style="background: var(--bg-card-hover); border: 1px solid var(--border-color); color: #fff; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer;">
-                    <i class="fas fa-sync-alt"></i>
+                <button id="refreshBtn" onclick="analyzeSymbol(currentSymbol)" style="background: var(--bg-card-hover); border: 1px solid var(--border-color); color: #fff; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer;">
+                    <i class="fas fa-sync-alt" id="refreshIcon"></i>
                 </button>
             </div>
         </div>
@@ -487,6 +424,9 @@
                 </div>
             </div>
 
+            <!-- Signal Container -->
+            <div id="signalBody"></div>
+
             <!-- Timeframe Analysis -->
             <div class="row g-3 mb-4">
                 <div class="col-6 col-lg-3">
@@ -518,45 +458,8 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Signal -->
-            <div class="card">
-                <div class="card-header">
-                    <i class="fas fa-bullseye me-2 text-warning"></i>ICT Entry Signal
-                </div>
-                <div class="card-body" id="signalBody">
-                    <div class="loading">
-                        <i class="fas fa-spinner fa-spin me-2"></i> Click a symbol to analyze...
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
-
-    <!-- Mobile Bottom Nav -->
-    <nav class="mobile-bottom-nav">
-        <a href="/" class="bottom-nav-item">
-            <i class="fas fa-tachometer-alt"></i>
-            <span>Dashboard</span>
-        </a>
-        <a href="/analysis" class="bottom-nav-item active">
-            <i class="fas fa-search"></i>
-            <span>Analysis</span>
-        </a>
-        <a href="/calendar" class="bottom-nav-item">
-            <i class="fas fa-calendar-alt"></i>
-            <span>Calendar</span>
-        </a>
-        <a href="/sentiment" class="bottom-nav-item">
-            <i class="fas fa-fire"></i>
-            <span>Sentiment</span>
-        </a>
-        <a href="/opportunities" class="bottom-nav-item"><i class="fas fa-bullseye"></i><span>Opportunities</span></a>
-        <a href="/trades" class="bottom-nav-item">
-            <i class="fas fa-history"></i>
-            <span>Trades</span>
-        </a>
-    </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -565,15 +468,17 @@
 
         // Request notification permission on page load
         async function initNotifications() {
-            // Load saved preference from server
+            // Load saved preference from server (optional endpoint)
             try {
                 const response = await fetch('/api/notifications/preferences');
-                const data = await response.json();
-                if (data.success && data.preferences.enabled) {
-                    notificationsEnabled = true;
-                    updateNotificationToggle();
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.preferences.enabled) {
+                        notificationsEnabled = true;
+                        updateNotificationToggle();
+                    }
                 }
-            } catch(e) { console.log('Could not load notification prefs'); }
+            } catch(e) { /* Silently fail - notifications are optional */ }
             
             // Request browser permission if not granted/denied
             if ('Notification' in window && Notification.permission === 'default') {
@@ -666,11 +571,26 @@
         // Full analysis - updates everything including trends
         async function analyzeSymbol(symbol) {
             currentSymbol = symbol;
-            document.getElementById('symbolSelect').value = symbol;
+            const symbolSelect = document.getElementById('symbolSelect');
+            if (symbolSelect) symbolSelect.value = symbol;
+            
+            const signalBodyEl = document.getElementById('signalBody');
+            const overallDirEl = document.getElementById('overallDirection');
+            const refreshIcon = document.getElementById('refreshIcon');
+            
+            // Add spin animation to refresh button
+            if (refreshIcon) refreshIcon.classList.add('fa-spin');
+            
+            // Safety check - if elements don't exist, return
+            if (!signalBodyEl || !overallDirEl) {
+                console.log('Required elements not found');
+                if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+                return;
+            }
             
             // Show loading
-            document.getElementById('signalBody').innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin me-2"></i> Analyzing...</div>';
-            document.getElementById('overallDirection').textContent = 'Loading...';
+            signalBodyEl.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin me-2"></i> Analyzing...</div>';
+            overallDirEl.textContent = 'Loading...';
             
             try {
                 const response = await fetch('/api/analyze/symbol/' + symbol + '?t=' + Date.now());
@@ -678,16 +598,17 @@
                 
                 if (!data.success) {
                     document.getElementById('signalBody').innerHTML = '<div class="loading" style="color: #f85149;">Error: ' + (data.error || 'Failed') + '</div>';
+                    document.getElementById('overallDirection').textContent = 'Error - Using Default';
+                    document.getElementById('overallDirection').className = 'overall-direction ranging';
                     return;
                 }
                 
-                // Update overall market direction only if it changed significantly (Bullish <-> Bearish)
-                const newDirection = data.overall_market;
-                if (newDirection !== cachedMarketDirection) {
-                    cachedMarketDirection = newDirection;
-                    document.getElementById('overallDirection').textContent = newDirection;
-                    document.getElementById('overallDirection').className = 'overall-direction ' + newDirection.toLowerCase();
-                }
+                // Update overall market direction - force update always
+                const newDirection = data.overall_market || 'Ranging';
+                const dirElement = document.getElementById('overallDirection');
+                dirElement.textContent = newDirection;
+                dirElement.className = 'overall-direction ' + newDirection.toLowerCase();
+                cachedMarketDirection = newDirection;
                 
                 // Update prices
                 updatePrices(symbol, data.current_price);
@@ -696,10 +617,10 @@
                 const timeframes = data.timeframes || {};
                 ['1H', '4H', '1D', '1W'].forEach(tf => {
                     const tfData = timeframes[tf] || {};
-                    document.getElementById('price-' + tf).textContent = formatPrice(tfData.price, symbol);
+                    document.getElementById('price-' + tf).textContent = formatPrice(tfData.price || 0, symbol);
                     document.getElementById('tf-' + tf).textContent = tfData.trend || '--';
-                    document.getElementById('tf-' + tf).className = 'trend-direction ' + (tfData.trend || '').toLowerCase();
-                    document.getElementById('card-' + tf).className = 'trend-card ' + (tfData.trend || '').toLowerCase();
+                    document.getElementById('tf-' + tf).className = 'trend-direction ' + (tfData.trend || 'unknown').toLowerCase();
+                    document.getElementById('card-' + tf).className = 'trend-card ' + (tfData.trend || 'unknown').toLowerCase();
                 });
                 
                 // Show update timestamp
@@ -790,6 +711,10 @@
             } catch (error) {
                 console.error(error);
                 document.getElementById('signalBody').innerHTML = '<div class="loading" style="color: #f85149;">Error: ' + error.message + '</div>';
+            } finally {
+                // Stop spin animation
+                const refreshIcon = document.getElementById('refreshIcon');
+                if (refreshIcon) refreshIcon.classList.remove('fa-spin');
             }
         }
 
@@ -823,6 +748,13 @@
         
         function updatePrices(symbol, currentPrice) {
             if (!currentPrice) return;
+            
+            const overallPrice = document.getElementById('overallPrice');
+            const bidPriceEl = document.getElementById('bidPrice');
+            const askPriceEl = document.getElementById('askPrice');
+            
+            if (!overallPrice || !bidPriceEl || !askPriceEl) return;
+            
             let spread = 0.0001;
             if (symbol === 'XAUUSD') spread = 0.3;
             else if (symbol.includes('JPY')) spread = 0.01;
@@ -832,9 +764,9 @@
             const bidPrice = currentPrice - spread;
             const askPrice = currentPrice + spread;
             
-            document.getElementById('overallPrice').textContent = formatPrice(currentPrice, symbol);
-            document.getElementById('bidPrice').textContent = formatPrice(bidPrice, symbol);
-            document.getElementById('askPrice').textContent = formatPrice(askPrice, symbol);
+            overallPrice.textContent = formatPrice(currentPrice, symbol);
+            bidPriceEl.textContent = formatPrice(bidPrice, symbol);
+            askPriceEl.textContent = formatPrice(askPrice, symbol);
         }
         
         // Auto load on page load
@@ -847,6 +779,14 @@
                 updatePricesOnly(symbol);
             }, 1000);
         });
+        
+        // Also try to load immediately in case DOMContentLoaded fired already
+        setTimeout(() => {
+            const dir = document.getElementById('overallDirection').textContent;
+            if (dir === 'Loading...') {
+                analyzeSymbol('GBP_USD');
+            }
+        }, 500);
     </script>
 </body>
 </html>
