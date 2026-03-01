@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0d1117">
+    <title>Risk Management - CHIBOY BOT</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --bg-card: #161b22;
+            --bg-card-hover: #1c2128;
+            --border-color: #30363d;
+            --text-primary: #ffffff;
+            --text-secondary: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent-green: #3fb950;
+            --accent-red: #f85149;
+            --accent-blue: #58a6ff;
+            --accent-purple: #a371f7;
+            --accent-gold: #f0b429;
+            --accent-cyan: #39d0d6;
+        }
+        
+        /* Light Theme */
+        body.light-theme {
+            --bg-dark: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f0f2f5;
+            --border-color: #d0d7de;
+            --text-primary: #1f2328;
+            --text-secondary: #59636e;
+            --text-muted: #8b949e;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #e8eaed 50%, var(--bg-dark) 100%);
+        }
+        
+        body.light-theme .menu-bar {
+            background: var(--bg-card);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        
+        body.light-theme .card {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        
+        body.light-theme input, 
+        body.light-theme select, 
+        body.light-theme textarea {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        body.light-theme .table {
+            --bs-table-bg: var(--bg-card);
+            --bs-table-color: var(--text-primary);
+            --bs-table-border-color: var(--border-color);
+        }
+        
+        body.light-theme .menu-link:hover {
+            background: rgba(0,0,0,0.05);
+        }
+        
+        .theme-toggle {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 0.4rem 0.6rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+            margin-left: auto;
+        }
+        
+        .theme-toggle:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--accent-gold);
+            border-color: var(--accent-gold);
+        }
+        
+        body.light-theme .theme-toggle {
+            background: rgba(0,0,0,0.05);
+            border-color: var(--border-color);
+        }
+        
+        body.light-theme .theme-toggle:hover {
+            background: rgba(240,180,41,0.15);
+            color: var(--accent-gold);
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1318 50%, var(--bg-dark) 100%);
+        }
+        
+        /* Menu Bar */
+        .menu-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            z-index: 1000;
+        }
+        
+        .menu-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-right: 2rem;
+        }
+        
+        .menu-brand i {
+            font-size: 1.5rem;
+            color: var(--accent-gold);
+        }
+        
+        .menu-brand span {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+        }
+        
+        .menu-nav {
+            display: flex;
+            gap: 0.5rem;
+            flex: 1;
+        }
+        
+        .menu-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        .menu-link:hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-primary);
+        }
+        
+        .menu-link.active {
+            background: var(--accent-gold);
+            color: #000;
+        }
+        
+        .menu-link i { font-size: 1rem; }
+        
+        .menu-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        /* Main Content */
+        .main { padding-top: 80px; padding-bottom: 2rem; padding-left: 1.5rem; padding-right: 1.5rem; }
+        
+        /* Page Header */
+        .page-header {
+            margin-bottom: 2rem;
+        }
+        
+        .page-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .page-title i {
+            color: var(--accent-gold);
+        }
+        
+        .page-subtitle {
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s;
+        }
+        
+        .stat-card:hover {
+            border-color: var(--accent-gold);
+            transform: translateY(-2px);
+        }
+        
+        .stat-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+        
+        .stat-card-title {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        
+        .stat-card-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+        
+        .stat-card-icon.balance { background: rgba(63, 185, 80, 0.15); color: var(--accent-green); }
+        .stat-card-icon.positions { background: rgba(88, 166, 255, 0.15); color: var(--accent-blue); }
+        .stat-card-icon.pnl { background: rgba(240, 180, 41, 0.15); color: var(--accent-gold); }
+        .stat-card-icon.margin { background: rgba(163, 113, 247, 0.15); color: var(--accent-purple); }
+        .stat-card-icon.risk { background: rgba(248, 81, 73, 0.15); color: var(--accent-red); }
+        .stat-card-icon.drawdown { background: rgba(57, 208, 214, 0.15); color: var(--accent-cyan); }
+        
+        .stat-card-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        
+        .stat-card-value.positive { color: var(--accent-green); }
+        .stat-card-value.negative { color: var(--accent-red); }
+        
+        .stat-card-change {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+        
+        /* Panels */
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .panel-title i {
+            color: var(--accent-gold);
+        }
+        
+        /* Calculator */
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-input {
+            width: 100%;
+            background: var(--bg-card-hover);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 3px rgba(240, 180, 41, 0.1);
+        }
+        
+        .calculator-result {
+            background: var(--bg-card-hover);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .result-row:last-child {
+            border-bottom: none;
+        }
+        
+        .result-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        .result-value {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--accent-gold);
+        }
+        
+        .result-value.large {
+            font-size: 1.5rem;
+        }
+        
+        .btn-calculate {
+            background: var(--accent-gold);
+            color: #000;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        
+        .btn-calculate:hover {
+            background: #d4a020;
+            transform: translateY(-2px);
+        }
+        
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        .risk-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .risk-table th {
+            text-align: left;
+            padding: 1rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .risk-table td {
+            padding: 1rem;
+            font-size: 0.95rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .risk-table tr:hover {
+            background: rgba(255,255,255,0.02);
+        }
+        
+        .direction-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .direction-badge.buy {
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--accent-green);
+        }
+        
+        .direction-badge.sell {
+            background: rgba(248, 81, 73, 0.15);
+            color: var(--accent-red);
+        }
+        
+        .pnl-positive {
+            color: var(--accent-green);
+        }
+        
+        .pnl-negative {
+            color: var(--accent-red);
+        }
+        
+        /* Risk Metrics */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+        
+        .metric-card {
+            background: var(--bg-card-hover);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        
+        .metric-value.green { color: var(--accent-green); }
+        .metric-value.red { color: var(--accent-red); }
+        .metric-value.gold { color: var(--accent-gold); }
+        .metric-value.blue { color: var(--accent-blue); }
+        
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        
+        /* Progress Bar */
+        .progress-container {
+            margin-top: 0.5rem;
+        }
+        
+        .progress-bar-custom {
+            height: 8px;
+            background: var(--bg-dark);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        
+        .progress-fill.green { background: var(--accent-green); }
+        .progress-fill.gold { background: var(--accent-gold); }
+        .progress-fill.red { background: var(--accent-red); }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .menu-nav { display: none; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .calculator-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Menu Bar -->
+    <nav class="menu-bar">
+        <div class="menu-brand">
+            <i class="fas fa-chart-line"></i>
+            <span>CHIBOY</span>
+        </div>
+        <div class="menu-nav">
+            <a href="/" class="menu-link"><i class="fas fa-home"></i> Dashboard</a>
+            <a href="/opportunities" class="menu-link"><i class="fas fa-bullseye"></i> Opportunities</a>
+            <a href="/analysis" class="menu-link"><i class="fas fa-search"></i> Analysis</a>
+            <a href="/sentiment" class="menu-link"><i class="fas fa-fire"></i> Sentiment</a>
+            <a href="/trades" class="menu-link"><i class="fas fa-history"></i> Trades</a>
+            <a href="/risk" class="menu-link active"><i class="fas fa-shield-alt"></i> Risk</a>
+        </div>
+        <div class="menu-status">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+                <i class="fas fa-moon"></i>
+            </button>
+            <span class="live-dot"></span>
+            <span>Live</span>
+        </div>
+    </nav>
+
+    <div class="main">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-shield-alt"></i>
+                Risk Management
+            </h1>
+            <p class="page-subtitle">Monitor your portfolio risk and calculate position sizes</p>
+        </div>
+        
+        <!-- Portfolio Summary -->
+        <div class="stats-grid" id="portfolioSummary">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Account Balance</span>
+                    <div class="stat-card-icon balance"><i class="fas fa-wallet"></i></div>
+                </div>
+                <div class="stat-card-value" id="accountBalance">$10,000.00</div>
+                <div class="stat-card-change">Available for trading</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Open Positions</span>
+                    <div class="stat-card-icon positions"><i class="fas fa-layer-group"></i></div>
+                </div>
+                <div class="stat-card-value" id="openPositions">0</div>
+                <div class="stat-card-change" id="totalExposure">Exposure: $0</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Unrealized P&L</span>
+                    <div class="stat-card-icon pnl"><i class="fas fa-chart-line"></i></div>
+                </div>
+                <div class="stat-card-value" id="unrealizedPnl">$0.00</div>
+                <div class="stat-card-change" id="realizedPnl">Realized: $0.00</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Available Margin</span>
+                    <div class="stat-card-icon margin"><i class="fas fa-percentage"></i></div>
+                </div>
+                <div class="stat-card-value" id="availableMargin">$10,000.00</div>
+                <div class="stat-card-change" id="usedMargin">Used: $0.00</div>
+            </div>
+        </div>
+        
+        <!-- Risk Metrics Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Risk Metrics
+                </h2>
+            </div>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value gold" id="riskPerTrade">2.0%</div>
+                    <div class="metric-label">Risk Per Trade</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-value red" id="maxDailyRisk">6.0%</div>
+                    <div class="metric-label">Max Daily Risk</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-value" id="dailyRiskUsed">0.0%</div>
+                    <div class="metric-label">Daily Risk Used</div>
+                    <div class="progress-container">
+                        <div class="progress-bar-custom">
+                            <div class="progress-fill red" id="dailyRiskBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-value blue" id="currentDrawdown">0.0%</div>
+                    <div class="metric-label">Current Drawdown</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-value green" id="winRate">0%</div>
+                    <div class="metric-label">Win Rate</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-value" id="totalTrades">0</div>
+                    <div class="metric-label">Total Trades</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Position Size Calculator -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <i class="fas fa-calculator"></i>
+                    Position Size Calculator
+                </h2>
+            </div>
+            
+            <div class="calculator-grid">
+                <div class="form-group">
+                    <label class="form-label">Account Balance ($)</label>
+                    <input type="number" class="form-input" id="calcBalance" value="10000" step="100">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Risk Percentage (%)</label>
+                    <input type="number" class="form-input" id="calcRisk" value="2.0" step="0.1" min="0.1" max="10">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Stop Loss (Pips)</label>
+                    <input type="number" class="form-input" id="calcStopLoss" value="20" step="1" min="1">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Entry Price</label>
+                    <input type="number" class="form-input" id="calcEntry" value="1.08500" step="0.00001">
+                </div>
+            </div>
+            
+            <button class="btn-calculate" onclick="calculatePositionSize()">
+                <i class="fas fa-calculator"></i> Calculate Position Size
+            </button>
+            
+            <div class="calculator-result" id="calcResult" style="display: none;">
+                <div class="result-row">
+                    <span class="result-label">Risk Amount</span>
+                    <span class="result-value" id="resultRiskAmount">$200.00</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Recommended Lot Size</span>
+                    <span class="result-value large" id="resultLotSize">1.00</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Standard Lots</span>
+                    <span class="result-value" id="resultStandardLots">1.00</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Mini Lots (0.1)</span>
+                    <span class="result-value" id="resultMiniLots">10.00</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Micro Lots (0.01)</span>
+                    <span class="result-value" id="resultMicroLots">100.00</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Position Value</span>
+                    <span class="result-value" id="resultPositionValue">$108,500.00</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Margin Required</span>
+                    <span class="result-value" id="resultMarginRequired">$1,085.00</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Potential Profit (1:2 R:R)</span>
+                    <span class="result-value" id="resultPotentialProfit">$400.00</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Open Positions Table -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <i class="fas fa-list"></i>
+                    Open Positions
+                </h2>
+            </div>
+            
+            <div class="table-container">
+                <table class="risk-table" id="positionsTable">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Direction</th>
+                            <th>Entry Price</th>
+                            <th>Current Price</th>
+                            <th>Stop Loss</th>
+                            <th>P&L (Pips)</th>
+                            <th>Risk (Pips)</th>
+                            <th>Timeframe</th>
+                        </tr>
+                    </thead>
+                    <tbody id="positionsBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="empty-state" id="noPositions" style="display: none;">
+                <i class="fas fa-inbox"></i>
+                <p>No open positions</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRiskSummary();
+            loadPositions();
+        });
+        
+        // Auto-refresh every 30 seconds
+        setInterval(function() {
+            loadRiskSummary();
+            loadPositions();
+        }, 30000);
+        
+        async function loadRiskSummary() {
+            try {
+                const response = await fetch('/api/risk/summary');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const summary = data.summary;
+                    
+                    // Portfolio Summary
+                    document.getElementById('accountBalance').textContent = '$' + summary.account_balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    document.getElementById('openPositions').textContent = summary.total_open_positions;
+                    document.getElementById('totalExposure').textContent = 'Exposure: $' + summary.total_exposure.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    
+                    const pnlEl = document.getElementById('unrealizedPnl');
+                    pnlEl.textContent = (summary.total_unrealized_pnl >= 0 ? '+' : '') + summary.total_unrealized_pnl.toFixed(2) + ' pips';
+                    pnlEl.className = 'stat-card-value ' + (summary.total_unrealized_pnl >= 0 ? 'positive' : 'negative');
+                    
+                    document.getElementById('realizedPnl').textContent = 'Realized: ' + (summary.total_realized_pnl >= 0 ? '+' : '') + summary.total_realized_pnl.toFixed(2) + ' pips';
+                    document.getElementById('availableMargin').textContent = '$' + summary.available_margin.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    document.getElementById('usedMargin').textContent = 'Used: $' + summary.used_margin.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    
+                    // Risk Metrics
+                    document.getElementById('riskPerTrade').textContent = summary.risk_per_trade.toFixed(1) + '%';
+                    document.getElementById('maxDailyRisk').textContent = summary.max_daily_risk.toFixed(1) + '%';
+                    document.getElementById('dailyRiskUsed').textContent = summary.daily_risk_used.toFixed(1) + '%';
+                    document.getElementById('currentDrawdown').textContent = summary.current_drawdown.toFixed(1) + '%';
+                    document.getElementById('winRate').textContent = summary.win_rate.toFixed(0) + '%';
+                    document.getElementById('totalTrades').textContent = summary.total_trades;
+                    
+                    // Update drawdown color
+                    const ddEl = document.getElementById('currentDrawdown');
+                    ddEl.className = 'metric-value ' + (summary.current_drawdown > 5 ? 'red' : 'green');
+                    
+                    // Update daily risk bar
+                    const dailyRiskBar = document.getElementById('dailyRiskBar');
+                    const riskPercent = Math.min((summary.daily_risk_used / summary.max_daily_risk) * 100, 100);
+                    dailyRiskBar.style.width = riskPercent + '%';
+                    dailyRiskBar.className = 'progress-fill ' + (riskPercent > 80 ? 'red' : riskPercent > 50 ? 'gold' : 'green');
+                }
+            } catch (e) {
+                console.error('Error loading risk summary:', e);
+            }
+        }
+        
+        async function loadPositions() {
+            try {
+                const response = await fetch('/api/risk/positions');
+                const data = await response.json();
+                
+                const tbody = document.getElementById('positionsBody');
+                const noPositions = document.getElementById('noPositions');
+                
+                if (data.success && data.positions.length > 0) {
+                    tbody.innerHTML = '';
+                    noPositions.style.display = 'none';
+                    
+                    data.positions.forEach(pos => {
+                        const row = document.createElement('tr');
+                        
+                        const directionClass = pos.direction.toUpperCase().includes('BUY') || pos.direction.toLowerCase() === 'long' ? 'buy' : 'sell';
+                        const directionText = pos.direction.toUpperCase().includes('BUY') || pos.direction.toLowerCase() === 'long' ? 'BUY' : 'SELL';
+                        
+                        const pnlClass = pos.pnl_pips >= 0 ? 'pnl-positive' : 'pnl-negative';
+                        const pnlText = (pos.pnl_pips >= 0 ? '+' : '') + pos.pnl_pips.toFixed(2);
+                        
+                        row.innerHTML = `
+                            <td><strong>${pos.symbol}</strong></td>
+                            <td><span class="direction-badge ${directionClass}">${directionText}</span></td>
+                            <td>${pos.entry_price.toFixed(5)}</td>
+                            <td>${pos.current_price.toFixed(5)}</td>
+                            <td>${pos.stop_loss > 0 ? pos.stop_loss.toFixed(5) : '-'}</td>
+                            <td class="${pnlClass}">${pnlText}</td>
+                            <td>${pos.risk_pips.toFixed(1)}</td>
+                            <td>${pos.timeframe || '-'}</td>
+                        `;
+                        
+                        tbody.appendChild(row);
+                    });
+                } else {
+                    tbody.innerHTML = '';
+                    noPositions.style.display = 'block';
+                }
+            } catch (e) {
+                console.error('Error loading positions:', e);
+            }
+        }
+        
+        async function calculatePositionSize() {
+            const accountBalance = parseFloat(document.getElementById('calcBalance').value) || 10000;
+            const riskPercent = parseFloat(document.getElementById('calcRisk').value) || 2.0;
+            const stopLossPips = parseFloat(document.getElementById('calcStopLoss').value) || 20;
+            const entryPrice = parseFloat(document.getElementById('calcEntry').value) || 1.0;
+            
+            try {
+                const response = await fetch('/api/risk/calculator', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        account_balance: accountBalance,
+                        risk_percent: riskPercent,
+                        stop_loss_pips: stopLossPips,
+                        entry_price: entryPrice
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const calc = data.calculation;
+                    
+                    document.getElementById('resultRiskAmount').textContent = '$' + calc.risk_amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    document.getElementById('resultLotSize').textContent = calc.lot_size.toFixed(2);
+                    document.getElementById('resultStandardLots').textContent = calc.standard_lots.toFixed(2);
+                    document.getElementById('resultMiniLots').textContent = calc.mini_lots.toFixed(2);
+                    document.getElementById('resultMicroLots').textContent = calc.micro_lots.toFixed(2);
+                    document.getElementById('resultPositionValue').textContent = '$' + calc.position_value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    document.getElementById('resultMarginRequired').textContent = '$' + calc.margin_required.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    document.getElementById('resultPotentialProfit').textContent = '$' + calc.potential_profit_1_2_rr.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    
+                    document.getElementById('calcResult').style.display = 'block';
+                }
+            } catch (e) {
+                console.error('Error calculating position size:', e);
+            }
+        }
+    </script>
+    <script>
+        // Theme Toggle Functionality
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.querySelector('.theme-toggle i');
+            
+            body.classList.toggle('light-theme');
+            
+            const isLight = body.classList.contains('light-theme');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            
+            if (isLight) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+        }
+        
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            const body = document.body;
+            const icon = document.querySelector('.theme-toggle i');
+            
+            if (savedTheme === 'light') {
+                body.classList.add('light-theme');
+                if (icon) {
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                }
+            }
+        })();
+    </script>
+</body>
+</html>

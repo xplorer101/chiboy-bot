@@ -16,6 +16,40 @@
             --accent-red: #f85149;
             --accent-blue: #58a6ff;
             --accent-gold: #f0b429;
+            --text-primary: #ffffff;
+            --text-muted: #8b949e;
+        }
+        
+        /* Light Theme */
+        body.light-theme {
+            --bg-dark: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f0f2f5;
+            --border-color: #d0d7de;
+            --text-primary: #1f2328;
+            --text-muted: #8b949e;
+        }
+        
+        body.light-theme .card,
+        body.light-theme .navbar,
+        body.light-theme .top-bar {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+        }
+        
+        body.light-theme .navbar {
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        
+        body.light-theme .table {
+            --bs-table-bg: var(--bg-card);
+            --bs-table-color: var(--text-primary);
+            --bs-table-border-color: var(--border-color);
+        }
+        
+        body.light-theme .mobile-bottom-nav {
+            background: var(--bg-card);
+            border-color: var(--border-color);
         }
         
         * { box-sizing: border-box; }
@@ -682,6 +716,15 @@
             loadTrades();
             setInterval(loadTrades, 10000);
         });
+    </script>
+    <script>
+        // Apply saved theme on page load
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-theme');
+            }
+        })();
     </script>
         <a href="/trades" class="bottom-nav-item active">
             <i class="fas fa-history"></i>

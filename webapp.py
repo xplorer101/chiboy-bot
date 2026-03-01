@@ -291,14 +291,131 @@ def check_liquidity_sweep(current_price, liquidity, direction="bullish"):
     return {"swept": swept, "level": swept_level}
 
 
+def _calculate_pips(price1: float, price2: float) -> float:
+    """Calculate distance in pips between two prices"""
+    # For forex pairs (not JPY): 1 pip = 0.0001
+    # For JPY pairs: 1 pip = 0.01
+    # For crypto: varies, use 0.0001 as base
+    
+    # Check if JPY pair (price around 100-200)
+    is_jpy = price1 > 50 or price2 > 50
+    
+    if is_jpy:
+        return abs(price1 - price2) * 100  # JPY pips
+    else:
+        return abs(price1 - price2) * 10000  # Standard pips
+
+
+def _filter_ob_by_distance(obs: list, current_price: float, min_pips: int = 30, max_pips: int = 50) -> list:
+    """Filter order blocks to only those within 30-50 pips of current price"""
+    filtered = []
+    for ob in obs:
+        entry = ob.get("entry_price", 0)
+        if entry <= 0:
+            continue
+        pips = _calculate_pips(entry, current_price)
+        if min_pips <= pips <= max_pips:
+            ob["distance_pips"] = round(pips, 1)
+            filtered.append(ob)
+    # Sort by distance - prefer closer OBs
+    filtered.sort(key=lambda x: x.get("distance_pips", 999))
+    return filtered
+
+
+def _find_swing_for_stop_loss(closes: list, highs: list, lows: list, direction: str, current_price: float) -> float:
+    """Find proper stop loss based on recent swing low/high"""
+    if len(highs) < 10 or len(lows) < 10:
+        return 0
+    
+    # Get recent swing points
+    swing_highs = []
+    swing_lows = []
+    
+    for i in range(5, len(highs) - 5):
+        # Swing high
+        if highs[i] > highs[i-1] and highs[i] > highs[i-2] and highs[i] > highs[i+1] and highs[i] > highs[i+2]:
+            swing_highs.append(highs[i])
+        # Swing low
+        if lows[i] < lows[i-1] and lows[i] < lows[i-2] and lows[i] < lows[i+1] and lows[i] < lows[i+2]:
+            swing_lows.append(lows[i])
+    
+    if direction == "bullish":
+        # For long: SL goes below recent swing low
+        if swing_lows:
+            recent_swing_low = min(swing_lows[-3:])  # Use last 3 swing lows
+            # Ensure SL is below current price
+            if recent_swing_low < current_price:
+                return recent_swing_low
+        # Fallback: use recent low
+        return min(lows[-10:])
+    else:
+        # For short: SL goes above recent swing high
+        if swing_highs:
+            recent_swing_high = max(swing_highs[-3:])
+            if recent_swing_high > current_price:
+                return recent_swing_high
+        # Fallback: use recent high
+        return max(highs[-10:])
+
+
+def _check_mss_requirement(closes: list, highs: list, lows: list, direction: str) -> dict:
+    """
+    Check for Market Structure Shift (MSS/BOS) requirement
+    Returns dict with 'found' and details
+    """
+    if len(closes) < 20:
+        return {"found": False, "reason": "Insufficient data"}
+    
+    current_price = closes[-1]
+    
+    # Find swing points
+    swing_highs = []
+    swing_lows = []
+    
+    for i in range(5, len(highs) - 5):
+        if highs[i] > highs[i-1] and highs[i] > highs[i-2] and highs[i] > highs[i+1] and highs[i] > highs[i+2]:
+            swing_highs.append({"price": highs[i], "index": i})
+        if lows[i] < lows[i-1] and lows[i] < lows[i-2] and lows[i] < lows[i+1] and lows[i] < lows[i+2]:
+            swing_lows.append({"price": lows[i], "index": i})
+    
+    if not swing_highs or not swing_lows:
+        return {"found": False, "reason": "No clear swing points"}
+    
+    last_swing_high = swing_highs[-1]["price"] if swing_highs else None
+    last_swing_low = swing_lows[-1]["price"] if swing_lows else None
+    
+    if direction == "bullish":
+        # Bullish MSS: Price breaking ABOVE last swing high
+        if last_swing_high and current_price > last_swing_high:
+            return {
+                "found": True,
+                "type": "Bullish MSS/BOS",
+                "broken_level": last_swing_high,
+                "current_price": current_price,
+                "strength": round((current_price - last_swing_high) / last_swing_high * 10000, 1)
+            }
+    else:
+        # Bearish MSS: Price breaking BELOW last swing low
+        if last_swing_low and current_price < last_swing_low:
+            return {
+                "found": True,
+                "type": "Bearish MSS/BOS",
+                "broken_level": last_swing_low,
+                "current_price": current_price,
+                "strength": round((last_swing_low - current_price) / last_swing_low * 10000, 1)
+            }
+    
+    return {"found": False, "reason": f"No MSS - price not broken {direction}"}
+
+
 def analyze_ict_setup_full(timeframe_data, htf_data=None):
     """
     Complete ICT Setup Analysis with all requirements:
-    1. HTF POI (FVG or OB from Daily/Weekly)
-    2. Liquidity Sweep (equal highs/lows, prev day/week high/low)
-    3. MSS/BOS confirmation
-    4. Entry ONLY at Order Block
-    5. Minimum 1:3 R:R
+    1. Only select order blocks within 30-50 pips of current price
+    2. Prefer discount entries (below current price for longs) over premium
+    3. Add FVG as backup entry if no good OB is found
+    4. Add Market Structure Shift (MSS) requirement before showing any signal
+    5. Calculate proper stop loss based on recent swing low/high
     """
     
     # Use 1H data as primary
@@ -309,7 +426,7 @@ def analyze_ict_setup_full(timeframe_data, htf_data=None):
     opens = tf.get("opens", [])
     
     if len(closes) < 20:
-        return {"signal": None, "reason": "Insufficient data"}
+        return {"signal": None, "reason": "Insufficient data", "reasons": ["Insufficient price data"]}
     
     current_price = closes[-1]
     
@@ -328,6 +445,10 @@ def analyze_ict_setup_full(timeframe_data, htf_data=None):
     bullish_obs = detect_order_block(highs, lows, closes, opens, "bullish")
     bearish_obs = detect_order_block(highs, lows, closes, opens, "bearish")
     
+    # Filter OBs to only those within 30-50 pips of current price
+    bullish_obs_filtered = _filter_ob_by_distance(bullish_obs, current_price, 30, 50)
+    bearish_obs_filtered = _filter_ob_by_distance(bearish_obs, current_price, 30, 50)
+    
     # Get structure info
     last_high = structure.get("last_swing_high")
     last_low = structure.get("last_swing_low")
@@ -344,13 +465,20 @@ def analyze_ict_setup_full(timeframe_data, htf_data=None):
     liquidity_swept_bullish = check_liquidity_sweep(current_price, liquidity, "bullish")
     liquidity_swept_bearish = check_liquidity_sweep(current_price, liquidity, "bearish")
     
-    # BULLISH SETUP Requirements:
-    # 1. HTF trend is bullish OR price above recent swing
-    # 2. Liquidity swept (prev lows taken) OR approaching liquidity
-    # 3. Valid Bullish OB available
+    # Check MSS requirement FIRST - this is mandatory
+    mss_bullish = _check_mss_requirement(closes, highs, lows, "bullish")
+    mss_bearish = _check_mss_requirement(closes, highs, lows, "bearish")
     
-    if htf_trend == "Bullish" or (last_high and current_price > last_low):
-        reasons.append(f"✓ HTF Trend: {htf_trend}")
+    # BULLISH SETUP Requirements:
+    # 1. MSS confirmed (price broke above last swing high) - MANDATORY
+    # 2. Liquidity swept (prev lows taken) OR approaching liquidity
+    # 3. Valid Bullish OB available within 30-50 pips (discount preferred)
+    
+    # Check if we have MSS for bullish
+    has_bullish_mss = mss_bullish.get("found", False)
+    
+    if has_bullish_mss:
+        reasons.append(f"✓ MSS: {mss_bullish['type']} - broke {mss_bullish.get('broken_level', 0):.5f}")
         
         # Check liquidity
         if liquidity_swept_bullish["swept"]:
@@ -358,33 +486,48 @@ def analyze_ict_setup_full(timeframe_data, htf_data=None):
         elif last_low:
             reasons.append(f"📍 Near liquidity zone at {last_low:.5f}")
         
-        # Look for bullish OB - prefer OB below or near current price (discount entry)
-        # Sort by distance from current price - prefer closer OBs
-        sorted_bullish = sorted(bullish_obs, key=lambda x: abs(x.get("entry_price", 0) - current_price))
+        # Look for bullish OB - DISCOUNT ONLY (below current price)
+        # Sort filtered OBs to prefer discount (below price)
+        sorted_bullish = sorted(
+            bullish_obs_filtered, 
+            key=lambda x: (x.get("entry_price", 0) > current_price, abs(x.get("entry_price", 0) - current_price))
+        )
         
         for ob in sorted_bullish:
             ob_entry = ob.get("entry_price", 0)
-            # For BUY: prefer entry below current price (discount) or slightly above (within 0.4%)
-            price_diff_pct = abs(ob_entry - current_price) / current_price
             
-            # Only accept OBs within 0.4% AND prefer below or at current price
-            if price_diff_pct < 0.004 and ob_entry <= current_price * 1.002:
-                # Calculate risk/reward
-                sl_distance = max(ob.get("high", 0) - ob.get("low", 0), current_price * 0.002)
+            # FOR BULLISH: MUST be discount (below or at current price)
+            if ob_entry <= current_price * 1.0005:  # Allow tiny premium (0.05%)
+                # Calculate SL: use swing low OR OB's built-in SL (whichever is tighter but below entry)
+                swing_sl = _find_swing_for_stop_loss(closes, highs, lows, "bullish", current_price)
+                ob_calculated_sl = ob.get("stop_loss", 0)  # This is below entry
+                
+                # For long: SL must be below entry
+                if swing_sl > 0 and swing_sl < ob_entry:
+                    stop_loss = swing_sl
+                elif ob_calculated_sl > 0 and ob_calculated_sl < ob_entry:
+                    stop_loss = ob_calculated_sl
+                else:
+                    # Fallback: use swing low or OB low minus buffer
+                    stop_loss = round(min(swing_sl if swing_sl > 0 else ob_entry, ob_entry - 0.001), 5)
+                
                 entry_price = round(ob_entry, 5)
-                stop_loss = round(ob.get("low", 0) - sl_distance * 0.5, 5)
                 risk = entry_price - stop_loss
                 
+                # Only proceed if valid risk
                 if risk > 0:
                     take_profit = round(entry_price + (risk * 3), 5)
                     trade_direction = "BUY"
-                    reasons.append(f"✓ Bullish OB found at {entry_price:.5f}")
-                    reasons.append("✓ Entry at Order Block")
+                    reasons.append(f"✓ Bullish OB (discount) at {entry_price:.5f} ({ob.get('distance_pips', '?')} pips)")
+                    reasons.append(f"✓ Entry at Order Block (discount)")
                     break
     
     # BEARISH SETUP Requirements
-    elif htf_trend == "Bearish" or (last_low and current_price < last_high):
-        reasons.append(f"✓ HTF Trend: {htf_trend}")
+    # Check if we have MSS for bearish
+    has_bearish_mss = mss_bearish.get("found", False)
+    
+    if not trade_direction and has_bearish_mss:
+        reasons.append(f"✓ MSS: {mss_bearish['type']} - broke {mss_bearish.get('broken_level', 0):.5f}")
         
         # Check liquidity
         if liquidity_swept_bearish["swept"]:
@@ -392,90 +535,95 @@ def analyze_ict_setup_full(timeframe_data, htf_data=None):
         elif last_high:
             reasons.append(f"📍 Near liquidity zone at {last_high:.5f}")
         
-        # Look for bearish OB - prefer OB above or near current price (premium entry)
-        sorted_bearish = sorted(bearish_obs, key=lambda x: abs(x.get("entry_price", 0) - current_price))
+        # Look for bearish OB - PREMIUM ONLY (above current price)
+        sorted_bearish = sorted(
+            bearish_obs_filtered,
+            key=lambda x: (x.get("entry_price", 0) < current_price, abs(x.get("entry_price", 0) - current_price))
+        )
         
         for ob in sorted_bearish:
             ob_entry = ob.get("entry_price", 0)
-            # For SELL: prefer entry above current price (premium) or slightly below (within 0.4%)
-            price_diff_pct = abs(ob_entry - current_price) / current_price
             
-            # Only accept OBs within 0.4% AND prefer above or at current price
-            if price_diff_pct < 0.004 and ob_entry >= current_price * 0.998:
-                sl_distance = max(ob.get("high", 0) - ob.get("low", 0), current_price * 0.002)
+            # FOR BEARISH: MUST be premium (above or at current price)
+            if ob_entry >= current_price * 0.9995:  # Allow tiny discount
+                # For short: SL must be above entry
+                swing_sl = _find_swing_for_stop_loss(closes, highs, lows, "bearish", current_price)
+                ob_calculated_sl = ob.get("stop_loss", 0)  # This is above entry
+                
+                if swing_sl > 0 and swing_sl > ob_entry:
+                    stop_loss = swing_sl
+                elif ob_calculated_sl > 0 and ob_calculated_sl > ob_entry:
+                    stop_loss = ob_calculated_sl
+                else:
+                    # Fallback
+                    stop_loss = round(max(swing_sl if swing_sl > 0 else ob_entry, ob_entry + 0.001), 5)
+                
                 entry_price = round(ob_entry, 5)
-                stop_loss = round(ob.get("high", 0) + sl_distance * 0.5, 5)
                 risk = stop_loss - entry_price
                 
                 if risk > 0:
                     take_profit = round(entry_price - (risk * 3), 5)
                     trade_direction = "SELL"
-                    reasons.append(f"✓ Bearish OB found at {entry_price:.5f}")
-                    reasons.append("✓ Entry at Order Block")
+                    reasons.append(f"✓ Bearish OB (premium) at {entry_price:.5f} ({ob.get('distance_pips', '?')} pips)")
+                    reasons.append(f"✓ Entry at Order Block (premium)")
                     break
     
-    # If no OB found, try FVG
-    if not trade_direction and fvgs:
-        if htf_trend == "Bullish":
-            bullish_fvgs = [f for f in fvgs if f["type"] == "bullish"]
-            if bullish_fvgs:
-                fvg = bullish_fvgs[0]
-                reasons.append(f"✓ Bullish FVG POI at {fvg['mid']:.5f}")
-                # Look for OB near FVG
-                for ob in bullish_obs:
-                    if abs(ob["entry_price"] - fvg["bottom"]) / fvg["bottom"] < 0.005:
-                        entry_price = round(ob["entry_price"], 5)
-                        sl_distance = ob["high"] - ob["low"]
-                        stop_loss = round(ob["low"] - sl_distance * 0.5, 5)
-                        risk = entry_price - stop_loss
-                        if risk > 0:
-                            take_profit = round(entry_price + risk * 3, 5)
-                            trade_direction = "BUY"
-                            reasons.append(f"✓ Entry at OB near FVG POI")
-                            break
-        elif htf_trend == "Bearish":
-            bearish_fvgs = [f for f in fvgs if f["type"] == "bearish"]
-            if bearish_fvgs:
-                fvg = bearish_fvgs[0]
-                reasons.append(f"✓ Bearish FVG POI at {fvg['mid']:.5f}")
-                for ob in bearish_obs:
-                    if abs(ob["entry_price"] - fvg["top"]) / fvg["top"] < 0.005:
-                        entry_price = round(ob["entry_price"], 5)
-                        sl_distance = ob["high"] - ob["low"]
-                        stop_loss = round(ob["high"] + sl_distance * 0.5, 5)
-                        risk = stop_loss - entry_price
-                        if risk > 0:
-                            take_profit = round(entry_price - risk * 3, 5)
-                            trade_direction = "SELL"
-                            reasons.append(f"✓ Entry at OB near FVG POI")
-                            break
-    
-    # If still no signal, create one based on trend and OB proximity
+    # FVG BACKUP: If no good OB found but MSS exists, try FVG
     if not trade_direction:
-        # Check if price is approaching OB
-        if htf_trend == "Bullish" and bullish_obs:
-            ob = bullish_obs[0]
-            if ob["entry_price"] < current_price:
-                entry_price = round(ob["entry_price"], 5)
-                sl_distance = ob["high"] - ob["low"]
-                stop_loss = round(ob["low"] - sl_distance * 0.3, 5)
-                risk = entry_price - stop_loss
-                if risk > 0:
-                    take_profit = round(entry_price + risk * 3, 5)
-                    trade_direction = "BUY"
-                    reasons.append("✓ Bullish setup - entering at OB")
+        if has_bullish_mss:
+            # Look for bullish FVG within 30-50 pips
+            for fvg in fvgs:
+                if fvg.get("type") != "bullish":
+                    continue
+                fvg_mid = fvg.get("mid", 0)
+                fvg_pips = _calculate_pips(fvg_mid, current_price)
+                
+                if 30 <= fvg_pips <= 50 and fvg_mid <= current_price:
+                    # Use FVG as entry point
+                    entry_price = round(fvg_mid, 5)
+                    # SL below the FVG bottom
+                    fvg_bottom = fvg.get("bottom", 0)
+                    swing_sl = _find_swing_for_stop_loss(closes, highs, lows, "bullish", current_price)
+                    stop_loss = min(swing_sl, fvg_bottom) if swing_sl > 0 else round(fvg_bottom, 5)
+                    
+                    risk = entry_price - stop_loss
+                    if risk > 0:
+                        take_profit = round(entry_price + (risk * 3), 5)
+                        trade_direction = "BUY"
+                        reasons.append(f"✓ FVG POI (backup) at {entry_price:.5f} ({fvg_pips:.1f} pips)")
+                        break
         
-        elif htf_trend == "Bearish" and bearish_obs:
-            ob = bearish_obs[0]
-            if ob["entry_price"] > current_price:
-                entry_price = round(ob["entry_price"], 5)
-                sl_distance = ob["high"] - ob["low"]
-                stop_loss = round(ob["high"] + sl_distance * 0.3, 5)
-                risk = stop_loss - entry_price
-                if risk > 0:
-                    take_profit = round(entry_price - risk * 3, 5)
-                    trade_direction = "SELL"
-                    reasons.append("✓ Bearish setup - entering at OB")
+        elif has_bearish_mss:
+            # Look for bearish FVG within 30-50 pips
+            for fvg in fvgs:
+                if fvg.get("type") != "bearish":
+                    continue
+                fvg_mid = fvg.get("mid", 0)
+                fvg_pips = _calculate_pips(fvg_mid, current_price)
+                
+                if 30 <= fvg_pips <= 50 and fvg_mid >= current_price:
+                    entry_price = round(fvg_mid, 5)
+                    fvg_top = fvg.get("top", 0)
+                    swing_sl = _find_swing_for_stop_loss(closes, highs, lows, "bearish", current_price)
+                    stop_loss = max(swing_sl, fvg_top) if swing_sl > 0 else round(fvg_top, 5)
+                    
+                    risk = stop_loss - entry_price
+                    if risk > 0:
+                        take_profit = round(entry_price - (risk * 3), 5)
+                        trade_direction = "SELL"
+                        reasons.append(f"✓ FVG POI (backup) at {entry_price:.5f} ({fvg_pips:.1f} pips)")
+                        break
+    
+    # If still no signal - add helpful message
+    if not trade_direction:
+        if not has_bullish_mss and not has_bearish_mss:
+            reasons.append("✗ No MSS - price hasn't broken swing point yet")
+        if not bullish_obs_filtered and not bearish_obs_filtered:
+            reasons.append("✗ No valid OB within 30-50 pips")
+        if has_bullish_mss and not bullish_obs_filtered:
+            reasons.append("✗ No discount OB found (try FVG backup)")
+        if has_bearish_mss and not bearish_obs_filtered:
+            reasons.append("✗ No premium OB found (try FVG backup)")
     
     # Calculate R:R
     risk_reward = None
@@ -493,6 +641,10 @@ def analyze_ict_setup_full(timeframe_data, htf_data=None):
         "risk_reward": f"1:{risk_reward}" if risk_reward else None,
         "reasons": reasons,
         "structure": structure,
+        "mss_check": {
+            "bullish": mss_bullish,
+            "bearish": mss_bearish
+        },
         "liquidity": {
             "equal_highs": liquidity.get("equal_highs", []),
             "equal_lows": liquidity.get("equal_lows", []),
@@ -504,8 +656,8 @@ def analyze_ict_setup_full(timeframe_data, htf_data=None):
             "swept_bearish": liquidity_swept_bearish
         },
         "order_blocks": {
-            "bullish": bullish_obs,
-            "bearish": bearish_obs
+            "bullish": bullish_obs_filtered,
+            "bearish": bearish_obs_filtered
         },
         "fvgs": fvgs,
         "htf_poi": htf_data if htf_data else None
@@ -1704,8 +1856,11 @@ def api_heatmap():
         return jsonify({'success': False, 'error': str(e)})
 
 
-if __name__ == '__main__':
-    run_server(debug=True)
+def run_server(debug=False, host='0.0.0.0', port=5000):
+    """Run the Flask server"""
+    app.run(host=host, port=port, debug=debug)
+
+
 if __name__ == '__main__':
     run_server(debug=True)
 
@@ -1721,4 +1876,580 @@ def economic_calendar():
     if isinstance(data, list):
         return jsonify({'success': True, 'events': data, 'date': datetime.now().strftime('%Y-%m-%d')})
     return jsonify(data)
+
+
+"""
+Backtesting Routes
+==================
+"""
+
+@app.route('/backtest')
+def backtest_page():
+    """Backtesting page"""
+    return render_template('backtest.html')
+
+
+@app.route('/api/backtest', methods=['POST'])
+def api_backtest():
+    """Run backtest with given parameters"""
+    data = request.json
+    
+    symbol = data.get('symbol', 'EURUSD')
+    timeframe = data.get('timeframe', '1H')
+    strategy = data.get('strategy', 'ICT')
+    start_date = data.get('start_date')
+    end_date = data.get('end_date')
+    
+    # Parse dates
+    try:
+        start = datetime.strptime(start_date, '%Y-%m-%d') if start_date else datetime.now() - timedelta(days=90)
+        end = datetime.strptime(end_date, '%Y-%m-%d') if end_date else datetime.now()
+        days = (end - start).days
+    except:
+        days = 90
+        start = datetime.now() - timedelta(days=90)
+        end = datetime.now()
+    
+    # Map timeframe
+    tf_map = {'1H': '1h', '4H': '4h', '1D': '1d'}
+    yahoo_tf = tf_map.get(timeframe, '1h')
+    
+    # Get Yahoo Finance symbol
+    yahoo_symbol = symbol
+    if symbol == 'XAUUSD':
+        yahoo_symbol = 'GC=F'
+    elif symbol in ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']:
+        yahoo_symbol = symbol.replace('USDT', '-USD')
+    else:
+        yahoo_symbol = symbol.replace('_', '') + '=X'
+    
+    try:
+        # Fetch historical data from Yahoo
+        import urllib.request
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}?interval={yahoo_tf}&range={days}d"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=30) as response:
+            ydata = json.loads(response.read().decode())
+        
+        result = ydata.get('chart', {}).get('result', [])
+        if not result:
+            raise Exception("No data returned")
+        
+        quote = result[0]['indicators']['quote'][0]
+        timestamps = result[0].get('timestamp', [])
+        
+        # Build candles list
+        candles = []
+        for i, ts in enumerate(timestamps):
+            if ts is None:
+                continue
+            o = quote.get('open', [None])[i]
+            h = quote.get('high', [None])[i]
+            l = quote.get('low', [None])[i]
+            c = quote.get('close', [None])[i]
+            if all(v is not None for v in [o, h, l, c]):
+                candles.append({
+                    'time': ts,
+                    'open': o, 'high': h, 'low': l, 'close': c
+                })
+        
+        if len(candles) < 50:
+            return jsonify({'success': False, 'error': 'Insufficient data for backtest'}), 400
+        
+        # Run strategy-based backtest
+        backtest_result = run_strategy_backtest(candles, strategy, symbol)
+        
+        return jsonify({
+            'success': True,
+            'result': backtest_result,
+            'candles': candles,
+            'params': {
+                'symbol': symbol,
+                'timeframe': timeframe,
+                'strategy': strategy,
+                'start_date': start.strftime('%Y-%m-%d'),
+                'end_date': end.strftime('%Y-%m-%d')
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Backtest error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def run_strategy_backtest(candles, strategy, symbol):
+    """Run strategy-based backtest on historical data"""
+    import math
+    
+    # Helper functions to replace numpy
+    def mean(arr):
+        return sum(arr) / len(arr) if arr else 0
+    
+    def std(arr):
+        if len(arr) < 2:
+            return 0
+        m = mean(arr)
+        variance = sum((x - m) ** 2 for x in arr) / len(arr)
+        return math.sqrt(variance)
+    
+    # Initial settings
+    initial_balance = 10000
+    balance = initial_balance
+    trades = []
+    position = None
+    
+    # Extract price arrays
+    opens = [c['open'] for c in candles]
+    highs = [c['high'] for c in candles]
+    lows = [c['low'] for c in candles]
+    closes = [c['close'] for c in candles]
+    times = [c['time'] for c in candles]
+    
+    # Strategy parameters
+    if strategy == 'ICT':
+        lookback = 5
+        rr_ratio = 3
+    elif strategy == 'MA Cross':
+        fast_ma = 9
+        slow_ma = 21
+    elif strategy == 'RSI':
+        rsi_period = 14
+        rsi_oversold = 30
+        rsi_overbought = 70
+    
+    for i in range(50, len(candles) - 10):
+        if position is None:
+            signal = None
+            
+            if strategy == 'ICT':
+                current_price = closes[i]
+                swing_low = min(lows[i-lookback:i])
+                swing_high = max(highs[i-lookback:i])
+                
+                if abs(current_price - swing_low) / current_price < 0.003:
+                    if closes[i] > opens[i] and closes[i] > opens[i-1]:
+                        signal = {'direction': 'long', 'entry': current_price}
+                elif abs(current_price - swing_high) / current_price < 0.003:
+                    if closes[i] < opens[i] and closes[i] < opens[i-1]:
+                        signal = {'direction': 'short', 'entry': current_price}
+            
+            elif strategy == 'MA Cross':
+                fast = mean(closes[i-fast_ma+1:i+1])
+                slow = mean(closes[i-slow_ma+1:i+1])
+                prev_fast = mean(closes[i-fast_ma:i])
+                prev_slow = mean(closes[i-slow_ma:i-1])
+                
+                if prev_fast <= prev_slow and fast > slow:
+                    signal = {'direction': 'long', 'entry': closes[i]}
+                elif prev_fast >= prev_slow and fast < slow:
+                    signal = {'direction': 'short', 'entry': closes[i]}
+            
+            elif strategy == 'RSI':
+                rsi_vals = closes[i-rsi_period+1:i+1]
+                if len(rsi_vals) >= rsi_period:
+                    deltas = [rsi_vals[j+1] - rsi_vals[j] for j in range(len(rsi_vals)-1)]
+                    gains = [d for d in deltas if d > 0]
+                    losses = [abs(d) for d in deltas if d < 0]
+                    avg_gain = mean(gains) if gains else 0
+                    avg_loss = mean(losses) if losses else 0.0001
+                    rs = avg_gain / avg_loss
+                    rsi = 100 - (100 / (1 + rs))
+                    
+                    if rsi < rsi_oversold:
+                        signal = {'direction': 'long', 'entry': closes[i]}
+                    elif rsi > rsi_overbought:
+                        signal = {'direction': 'short', 'entry': closes[i]}
+            
+            if signal:
+                risk_pct = 0.02
+                risk_amount = balance * risk_pct
+                
+                # Calculate ATR-like stop
+                atr = std(closes[i-14:i]) if i > 14 else 0.001 * closes[i]
+                stop_distance = max(atr, closes[i] * 0.005)
+                
+                if signal['direction'] == 'long':
+                    sl = signal['entry'] - stop_distance
+                    tp = signal['entry'] + (stop_distance * rr_ratio if strategy == 'ICT' else stop_distance * 2)
+                else:
+                    sl = signal['entry'] + stop_distance
+                    tp = signal['entry'] - (stop_distance * rr_ratio if strategy == 'ICT' else stop_distance * 2)
+                
+                position = {
+                    'direction': signal['direction'],
+                    'entry': signal['entry'],
+                    'sl': sl,
+                    'tp': tp,
+                    'entry_time': times[i],
+                    'size': risk_amount / stop_distance,
+                    'reason': strategy
+                }
+        
+        else:
+            current_price = closes[i]
+            exit_reason = None
+            
+            if position['direction'] == 'long':
+                if current_price <= position['sl']:
+                    exit_price = position['sl']
+                    exit_reason = 'SL'
+                elif current_price >= position['tp']:
+                    exit_price = position['tp']
+                    exit_reason = 'TP'
+            else:
+                if current_price >= position['sl']:
+                    exit_price = position['sl']
+                    exit_reason = 'SL'
+                elif current_price <= position['tp']:
+                    exit_price = position['tp']
+                    exit_reason = 'TP'
+            
+            if exit_reason:
+                pnl = (exit_price - position['entry']) * position['size'] if position['direction'] == 'long' else (position['entry'] - exit_price) * position['size']
+                balance += pnl
+                
+                trades.append({
+                    'entry_time': position['entry_time'],
+                    'exit_time': times[i],
+                    'direction': position['direction'],
+                    'entry': round(position['entry'], 5),
+                    'exit': round(exit_price, 5),
+                    'sl': round(position['sl'], 5),
+                    'tp': round(position['tp'], 5),
+                    'pnl': round(pnl, 2),
+                    'pnl_pct': round(pnl / initial_balance * 100, 2),
+                    'result': exit_reason
+                })
+                position = None
+    
+    # Close open position
+    if position:
+        final_price = closes[-1]
+        pnl = (final_price - position['entry']) * position['size'] if position['direction'] == 'long' else (position['entry'] - final_price) * position['size']
+        balance += pnl
+        trades.append({
+            'entry_time': position['entry_time'],
+            'exit_time': times[-1],
+            'direction': position['direction'],
+            'entry': round(position['entry'], 5),
+            'exit': round(final_price, 5),
+            'sl': round(position['sl'], 5),
+            'tp': round(position['tp'], 5),
+            'pnl': round(pnl, 2),
+            'pnl_pct': round(pnl / initial_balance * 100, 2),
+            'result': 'CLOSE'
+        })
+    
+    # Calculate metrics
+    wins = [t for t in trades if t['pnl'] > 0]
+    losses = [t for t in trades if t['pnl'] <= 0]
+    win_rate = len(wins) / len(trades) * 100 if trades else 0
+    avg_win = mean([t['pnl'] for t in wins]) if wins else 0
+    avg_loss = mean([abs(t['pnl']) for t in losses]) if losses else 0
+    
+    # Max drawdown
+    running_balance = initial_balance
+    peak = initial_balance
+    max_dd = 0
+    for t in trades:
+        running_balance += t['pnl']
+        if running_balance > peak:
+            peak = running_balance
+        dd = (peak - running_balance) / peak * 100 if peak > 0 else 0
+        if dd > max_dd:
+            max_dd = dd
+    
+    avg_rr = avg_win / avg_loss if avg_loss != 0 else 0
+    
+    return {
+        'symbol': symbol,
+        'initial_balance': initial_balance,
+        'final_balance': round(balance, 2),
+        'total_trades': len(trades),
+        'wins': len(wins),
+        'losses': len(losses),
+        'win_rate': round(win_rate, 2),
+        'total_pnl': round(balance - initial_balance, 2),
+        'total_pnl_pct': round((balance - initial_balance) / initial_balance * 100, 2),
+        'avg_win': round(avg_win, 2),
+        'avg_loss': round(avg_loss, 2),
+        'max_drawdown_pct': round(max_dd, 2),
+        'avg_rr': round(avg_rr, 2),
+        'trades': trades[-50:]
+    }
+
+
+@app.route('/api/backtest/history')
+def api_backtest_history():
+    """Get backtest history"""
+    results = database.get_backtest_results(limit=20)
+    history = []
+    for r in results:
+        history.append({
+            'id': r['id'],
+            'symbol': r['symbol'],
+            'timeframe': r['timeframe'],
+            'strategy': r['strategy'],
+            'start_date': r['start_date'],
+            'end_date': r['end_date'],
+            'total_trades': r['total_trades'],
+            'win_rate': r['win_rate'],
+            'total_pnl': r['total_pnl'],
+            'total_pnl_pct': r['total_pnl_pct'],
+            'created_at': r['created_at']
+        })
+    return jsonify({'success': True, 'history': history})
+
+
+@app.route('/api/backtest/save', methods=['POST'])
+def api_backtest_save():
+    """Save backtest result"""
+    data = request.json
+    result = data.get('result', {})
+    params = data.get('params', {})
+    
+    try:
+        result_id = database.save_backtest_result(
+            user_id=None,
+            symbol=params.get('symbol'),
+            timeframe=params.get('timeframe'),
+            strategy=params.get('strategy'),
+            start_date=params.get('start_date'),
+            end_date=params.get('end_date'),
+            initial_balance=result.get('initial_balance'),
+            final_balance=result.get('final_balance'),
+            total_trades=result.get('total_trades'),
+            wins=result.get('wins'),
+            losses=result.get('losses'),
+            win_rate=result.get('win_rate'),
+            total_pnl=result.get('total_pnl'),
+            total_pnl_pct=result.get('total_pnl_pct'),
+            avg_win=result.get('avg_win'),
+            avg_loss=result.get('avg_loss'),
+            max_drawdown_pct=result.get('max_drawdown_pct'),
+            sharpe_ratio=result.get('avg_rr'),
+            trades_json=result.get('trades', [])
+        )
+        return jsonify({'success': True, 'id': result_id})
+    except Exception as e:
+        logger.error(f"Save backtest error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ==================== RISK MANAGEMENT ROUTES ====================
+
+# Default account settings (can be moved to config)
+DEFAULT_ACCOUNT_BALANCE = 10000.0
+DEFAULT_RISK_PERCENT = 2.0
+DEFAULT_MAX_DAILY_RISK = 6.0
+
+
+@app.route('/risk')
+def risk_page():
+    """Risk Management Dashboard Page"""
+    return render_template('risk.html')
+
+
+@app.route('/api/risk/positions')
+def api_risk_positions():
+    """Get current open positions with risk metrics"""
+    try:
+        positions = []
+        
+        # Get open trades from trade_history
+        for trade in trade_history["open_trades"]:
+            # Calculate current P&L based on live price
+            current_price = trade.get("current_price", trade.get("entry_price", 0))
+            entry_price = trade.get("entry_price", 0)
+            
+            if trade.get("direction") == "long" or trade.get("direction") == "BUY":
+                pnl = (current_price - entry_price) * 10000 if entry_price > 0 else 0  # pips
+                pnl_percent = ((current_price - entry_price) / entry_price * 100) if entry_price > 0 else 0
+            else:
+                pnl = (entry_price - current_price) * 10000 if entry_price > 0 else 0
+                pnl_percent = ((entry_price - current_price) / entry_price * 100) if entry_price > 0 else 0
+            
+            # Calculate risk
+            stop_loss = trade.get("stop_loss", 0)
+            entry = trade.get("entry_price", 0)
+            if entry > 0 and stop_loss > 0:
+                risk_pips = abs(entry - stop_loss) * 10000
+            else:
+                risk_pips = 0
+            
+            positions.append({
+                "id": trade.get("id"),
+                "symbol": trade.get("symbol"),
+                "direction": trade.get("direction"),
+                "entry_price": entry_price,
+                "current_price": current_price,
+                "stop_loss": stop_loss,
+                "take_profit": trade.get("take_profit"),
+                "pnl_pips": round(pnl, 2),
+                "pnl_percent": round(pnl_percent, 2),
+                "risk_pips": round(risk_pips, 2),
+                "status": trade.get("status", "open"),
+                "entry_time": trade.get("entry_time"),
+                "timeframe": trade.get("timeframe")
+            })
+        
+        return jsonify({
+            "success": True,
+            "positions": positions,
+            "count": len(positions)
+        })
+    except Exception as e:
+        logger.error(f"Error fetching positions: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/risk/summary')
+def api_risk_summary():
+    """Get risk summary including total exposure, P&L, and account metrics"""
+    try:
+        # Calculate from trade history
+        open_trades = trade_history["open_trades"]
+        closed_trades = trade_history["trades"]
+        
+        # Calculate total unrealized P&L
+        total_unrealized_pnl = 0.0
+        total_exposure = 0.0
+        
+        for trade in open_trades:
+            current_price = trade.get("current_price", trade.get("entry_price", 0))
+            entry_price = trade.get("entry_price", 0)
+            
+            if trade.get("direction") == "long" or trade.get("direction") == "BUY":
+                pnl = (current_price - entry_price) * 10000 if entry_price > 0 else 0
+            else:
+                pnl = (entry_price - current_price) * 10000 if entry_price > 0 else 0
+            
+            total_unrealized_pnl += pnl
+            
+            # Calculate exposure (notional value)
+            # Assuming 1 standard lot = 100,000 units
+            lot_size = trade.get("lot_size", 1.0)
+            exposure = lot_size * 100000 * entry_price
+            total_exposure += exposure
+        
+        # Calculate realized P&L from closed trades
+        total_realized_pnl = sum(t.get("pnl_pips", 0) for t in closed_trades)
+        
+        # Calculate win rate
+        winning_trades = len([t for t in closed_trades if t.get("result") == "TP"])
+        total_closed = len(closed_trades)
+        win_rate = (winning_trades / total_closed * 100) if total_closed > 0 else 0
+        
+        # Get account balance (using default or from config)
+        account_balance = DEFAULT_ACCOUNT_BALANCE
+        
+        # Calculate margin (simplified - assume 100:1 leverage)
+        used_margin = total_exposure / 100 if total_exposure > 0 else 0
+        available_margin = account_balance - used_margin
+        
+        # Calculate drawdown (from peak balance)
+        peak_balance = account_balance + total_realized_pnl + total_unrealized_pnl
+        current_balance = account_balance + total_realized_pnl + total_unrealized_pnl
+        drawdown = ((peak_balance - current_balance) / peak_balance * 100) if peak_balance > 0 else 0
+        
+        # Calculate risk metrics
+        risk_per_trade = DEFAULT_RISK_PERCENT
+        max_daily_risk = DEFAULT_MAX_DAILY_RISK
+        
+        # Calculate today's risk
+        today = datetime.now().strftime("%Y-%m-%d")
+        today_trades = [t for t in closed_trades if t.get("exit_time", "").startswith(today)]
+        daily_risk_used = sum(abs(t.get("pnl_pips", 0)) for t in today_trades if t.get("result") == "SL") / (account_balance / 10000) if account_balance > 0 else 0
+        
+        return jsonify({
+            "success": True,
+            "summary": {
+                "account_balance": account_balance,
+                "total_open_positions": len(open_trades),
+                "total_unrealized_pnl": round(total_unrealized_pnl, 2),
+                "total_realized_pnl": round(total_realized_pnl, 2),
+                "total_exposure": round(total_exposure, 2),
+                "available_margin": round(available_margin, 2),
+                "used_margin": round(used_margin, 2),
+                "win_rate": round(win_rate, 2),
+                "total_trades": total_closed,
+                "winning_trades": winning_trades,
+                "losing_trades": total_closed - winning_trades,
+                "current_drawdown": round(drawdown, 2),
+                "risk_per_trade": risk_per_trade,
+                "max_daily_risk": max_daily_risk,
+                "daily_risk_used": round(daily_risk_used, 2),
+                "max_daily_risk_remaining": round(max_daily_risk - daily_risk_used, 2)
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error fetching risk summary: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/risk/calculator', methods=['POST'])
+def api_risk_calculator():
+    """Position size calculator"""
+    try:
+        data = request.json
+        
+        account_balance = float(data.get("account_balance", DEFAULT_ACCOUNT_BALANCE))
+        risk_percent = float(data.get("risk_percent", DEFAULT_RISK_PERCENT))
+        stop_loss_pips = float(data.get("stop_loss_pips", 20))
+        entry_price = float(data.get("entry_price", 0))
+        stop_loss = float(data.get("stop_loss", 0))
+        
+        # Calculate risk amount in account currency
+        risk_amount = account_balance * (risk_percent / 100)
+        
+        # Calculate pip value (simplified - assume USD base)
+        # For direct pairs (EURUSD, GBPUSD, etc.): 1 pip = $10 per standard lot
+        # For USDJPY: 1 pip = ¥1000 per standard lot, need to convert
+        # This is simplified - real calculation depends on account currency
+        
+        pip_value = 10  # Default for direct pairs
+        
+        # Calculate lot size
+        # Lot size = Risk amount / (Stop loss pips * pip value)
+        lot_size = risk_amount / (stop_loss_pips * pip_value) if stop_loss_pips > 0 and pip_value > 0 else 0
+        
+        # Convert to more readable units
+        # Standard lot = 100,000 units
+        # Mini lot = 10,000 units
+        # Micro lot = 1,000 units
+        standard_lots = lot_size
+        mini_lots = lot_size * 10
+        micro_lots = lot_size * 100
+        
+        # Calculate position value
+        position_value = lot_size * 100000 * entry_price if entry_price > 0 else 0
+        
+        # Calculate margin required (assuming 100:1 leverage)
+        margin_required = position_value / 100 if position_value > 0 else 0
+        
+        # Calculate potential profit/loss for 1:2 R:R
+        potential_r2 = risk_amount * 2
+        
+        return jsonify({
+            "success": True,
+            "calculation": {
+                "account_balance": account_balance,
+                "risk_percent": risk_percent,
+                "risk_amount": round(risk_amount, 2),
+                "stop_loss_pips": stop_loss_pips,
+                "entry_price": entry_price,
+                "stop_loss": stop_loss,
+                "lot_size": round(lot_size, 2),
+                "standard_lots": round(standard_lots, 2),
+                "mini_lots": round(mini_lots, 2),
+                "micro_lots": round(micro_lots, 2),
+                "position_value": round(position_value, 2),
+                "margin_required": round(margin_required, 2),
+                "potential_profit_1_2_rr": round(potential_r2, 2),
+                "risk_reward_ratio": "1:2"
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error in position calculator: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 

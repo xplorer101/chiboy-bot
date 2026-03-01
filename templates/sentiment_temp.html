@@ -25,6 +25,75 @@
             --accent-cyan: #39d0d6;
         }
         
+        /* Light Theme */
+        body.light-theme {
+            --bg-dark: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f0f2f5;
+            --border-color: #d0d7de;
+            --text-primary: #1f2328;
+            --text-secondary: #59636e;
+            --text-muted: #8b949e;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #e8eaed 50%, var(--bg-dark) 100%);
+        }
+        
+        body.light-theme .menu-bar {
+            background: var(--bg-card);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        
+        body.light-theme .card {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        
+        body.light-theme input, 
+        body.light-theme select, 
+        body.light-theme textarea {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        body.light-theme .table {
+            --bs-table-bg: var(--bg-card);
+            --bs-table-color: var(--text-primary);
+            --bs-table-border-color: var(--border-color);
+        }
+        
+        body.light-theme .menu-link:hover {
+            background: rgba(0,0,0,0.05);
+        }
+        
+        .theme-toggle {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 0.4rem 0.6rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+            margin-left: auto;
+        }
+        
+        .theme-toggle:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--accent-gold);
+            border-color: var(--accent-gold);
+        }
+        
+        body.light-theme .theme-toggle {
+            background: rgba(0,0,0,0.05);
+            border-color: var(--border-color);
+        }
+        
+        body.light-theme .theme-toggle:hover {
+            background: rgba(240,180,41,0.15);
+            color: var(--accent-gold);
+        }
+        
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body {
@@ -264,6 +333,9 @@
             <a href="/trades" class="menu-link"><i class="fas fa-history"></i> Trades</a>
         </div>
         <div class="menu-status">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+                <i class="fas fa-moon"></i>
+            </button>
             <span class="live-dot"></span>
             <span>Live</span>
         </div>
@@ -491,6 +563,40 @@
         
         setInterval(loadChartData, 30000);
         initChart();
+    </script>
+    <script>
+        // Theme Toggle Functionality
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.querySelector('.theme-toggle i');
+            
+            body.classList.toggle('light-theme');
+            
+            const isLight = body.classList.contains('light-theme');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            
+            if (isLight) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+        }
+        
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            const body = document.body;
+            const icon = document.querySelector('.theme-toggle i');
+            
+            if (savedTheme === 'light') {
+                body.classList.add('light-theme');
+                if (icon) {
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                }
+            }
+        })();
     </script>
 </body>
 </html>

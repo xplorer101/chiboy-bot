@@ -25,6 +25,66 @@
             --accent-cyan: #39d0d6;
         }
         
+        /* Light Theme */
+        body.light-theme {
+            --bg-dark: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f0f2f5;
+            --border-color: #d0d7de;
+            --text-primary: #1f2328;
+            --text-secondary: #59636e;
+            --text-muted: #8b949e;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #e8eaed 50%, var(--bg-dark) 100%);
+        }
+        
+        body.light-theme .menu-bar {
+            background: var(--bg-card);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        
+        body.light-theme .hero {
+            background: linear-gradient(180deg, rgba(240,180,41,0.15) 0%, transparent 100%);
+        }
+        
+        body.light-theme .card {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        
+        body.light-theme .stat-card {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+        }
+        
+        body.light-theme input, 
+        body.light-theme select, 
+        body.light-theme textarea {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        body.light-theme .table {
+            --bs-table-bg: var(--bg-card);
+            --bs-table-color: var(--text-primary);
+            --bs-table-border-color: var(--border-color);
+        }
+        
+        body.light-theme .btn-outline-primary {
+            color: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+        
+        body.light-theme .menu-link:hover {
+            background: rgba(0,0,0,0.05);
+        }
+        
+        body.light-theme .mobile-menu {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+        }
+        
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body {
@@ -192,6 +252,96 @@
         }
         
         #chart { width: 100%; height: 400px; }
+        #rsiChart { width: 100%; height: 120px; margin-top: 10px; display: none; }
+        
+        .chart-toolbar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .toolbar-group {
+            display: flex;
+            gap: 0.25rem;
+            align-items: center;
+            padding: 0.25rem;
+            background: var(--bg-card-hover);
+            border-radius: 8px;
+        }
+        
+        .toolbar-btn {
+            padding: 0.4rem 0.6rem;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        
+        .toolbar-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+        }
+        
+        .toolbar-btn.active {
+            background: var(--accent-gold);
+            color: #000;
+        }
+        
+        .indicator-select {
+            background: var(--bg-card-hover);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            padding: 0.4rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            min-width: 120px;
+        }
+        
+        .indicator-settings {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            background: var(--bg-card-hover);
+            border-radius: 6px;
+        }
+        
+        .indicator-settings input {
+            width: 50px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+        
+        .indicator-settings label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        
+        .indicator-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+        }
+        
+        .color-picker-wrapper {
+            position: relative;
+        }
         
         .chart-price { display: flex; align-items: baseline; gap: 0.5rem; }
         .price-main { font-size: 2rem; font-weight: 700; }
@@ -283,7 +433,34 @@
         .menu-link:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
         .menu-link.active { background: var(--accent-gold); color: #000; }
         
-        .menu-status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-muted); }
+        .menu-status { display: flex; align-items: center; gap: 0.75rem; font-size: 0.8rem; color: var(--text-muted); }
+        
+        .theme-toggle {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 0.4rem 0.6rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+        
+        .theme-toggle:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--accent-gold);
+            border-color: var(--accent-gold);
+        }
+        
+        body.light-theme .theme-toggle {
+            background: rgba(0,0,0,0.05);
+            border-color: var(--border-color);
+        }
+        
+        body.light-theme .theme-toggle:hover {
+            background: rgba(240,180,41,0.15);
+            color: var(--accent-gold);
+        }
         
         .live-dot { width: 8px; height: 8px; background: var(--accent-green); border-radius: 50%; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
@@ -306,8 +483,12 @@
             <a href="/analysis" class="menu-link"><i class="fas fa-search"></i> Analysis</a>
             <a href="/sentiment" class="menu-link"><i class="fas fa-fire"></i> Sentiment</a>
             <a href="/trades" class="menu-link"><i class="fas fa-history"></i> Trades</a>
+            <a href="/risk" class="menu-link"><i class="fas fa-shield-alt"></i> Risk</a>
         </div>
         <div class="menu-status">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+                <i class="fas fa-moon"></i>
+            </button>
             <span class="live-dot"></span>
             <span>Live</span>
         </div>
@@ -381,7 +562,48 @@
                     <option value="1mo">1 Month</option>
                 </select>
             </div>
+            
+            <!-- Chart Toolbar -->
+            <div class="chart-toolbar">
+                <div class="toolbar-group">
+                    <button class="toolbar-btn" id="btnTrendline" onclick="setDrawingMode('trendline')" title="Trendline">
+                        <i class="fas fa-slash"></i> Trendline
+                    </button>
+                    <button class="toolbar-btn" id="btnHLine" onclick="setDrawingMode('hline')" title="Horizontal Line">
+                        <i class="fas fa-minus"></i> H-Line
+                    </button>
+                    <button class="toolbar-btn" id="btnRectangle" onclick="setDrawingMode('rectangle')" title="Rectangle">
+                        <i class="far fa-square"></i> Rectangle
+                    </button>
+                    <button class="toolbar-btn" id="btnFibonacci" onclick="setDrawingMode('fibonacci')" title="Fibonacci">
+                        <i class="fas fa-wave-square"></i> Fibonacci
+                    </button>
+                    <button class="toolbar-btn" onclick="clearDrawings()" title="Clear All">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                </div>
+                
+                <select class="indicator-select" id="indicatorSelect" onchange="changeIndicator()">
+                    <option value="">-- Indicators --</option>
+                    <option value="EMA">EMA</option>
+                    <option value="SMA">SMA</option>
+                    <option value="RSI">RSI</option>
+                    <option value="BB">Bollinger Bands</option>
+                </select>
+                
+                <div class="indicator-settings" id="indicatorSettings" style="display:none;">
+                    <label>Period:</label>
+                    <input type="number" id="indicatorPeriod" value="14" min="1" max="200" onchange="updateIndicator()">
+                    <label>Color:</label>
+                    <input type="color" id="indicatorColor" class="indicator-color" value="#f0b429" onchange="updateIndicator()">
+                    <button class="toolbar-btn" onclick="removeIndicator()" title="Remove">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
             <div id="chart"></div>
+            <div id="rsiChart"></div>
         </div>
         
         <!-- Info Cards -->
@@ -449,9 +671,46 @@
     </div>
 
     <script>
-        let chart, candlestickSeries;
+        let chart, candlestickSeries, rsiChart, rsiSeries;
         let currentSymbol = 'GBP_USD';
         let currentTimeframe = '1h';
+        
+        // Indicator state
+        let currentIndicator = null;
+        let indicatorSeries = null;
+        let indicatorData = [];
+        
+        // Drawing state
+        let drawingMode = null;
+        let isDrawing = false;
+        let drawStartPoint = null;
+        let drawings = [];
+        let drawingsMap = new Map();
+        let lineIdCounter = 0;
+        
+        // Fibonacci levels
+        const FIB_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+        const FIB_COLORS = ['#f85149', '#f0b429', '#58a6ff', '#a371f7', '#3fb950', '#39d0d6', '#f85149'];
+        
+        // Load drawings from localStorage
+        function loadDrawings() {
+            try {
+                const saved = localStorage.getItem('chiboy_drawings_' + currentSymbol);
+                if (saved) {
+                    drawings = JSON.parse(saved);
+                    drawings.forEach(d => {
+                        drawStoredLine(d);
+                    });
+                }
+            } catch (e) { console.error('Error loading drawings:', e); }
+        }
+        
+        // Save drawings to localStorage
+        function saveDrawings() {
+            try {
+                localStorage.setItem('chiboy_drawings_' + currentSymbol, JSON.stringify(drawings));
+            } catch (e) { console.error('Error saving drawings:', e); }
+        }
         
         function toggleMobileMenu() {
             document.getElementById('mobileMenu').classList.toggle('open');
@@ -477,7 +736,6 @@
         // Force 5 decimal places for forex on chart
         function getChartDecimals(symbol) {
             if (symbol && (symbol.includes('JPY'))) return 3;
-            // Default to 5 decimals for forex
             return 5;
         }
         
@@ -489,17 +747,7 @@
                 timeScale: { borderColor: '#30363d' },
                 rightPriceScale: { 
                     borderColor: '#30363d',
-                    scaleMargins: { top: 0.1, bottom: 0.1 }
-                }
-            });
-            
-            candlestickSeries = chart.addCandlestickSeries({
-                upColor: '#3fb950', downColor: '#f85149',
-                borderUpColor: '#3fb950', borderDownColor: '#f85149',
-                wickUpColor: '#3fb950', wickDownColor: '#f85149',
-                priceFormat: {
-                    type: 'custom',
-                    formatter: function(price) { return price.toFixed(5); }
+                    scaleMargins: { top: 0.1, bottom: 0.2 }
                 }
             });
             
@@ -509,7 +757,541 @@
                 wickUpColor: '#3fb950', wickDownColor: '#f85149'
             });
             
+            // Init RSI chart (hidden by default)
+            rsiChart = LightweightCharts.createChart(document.getElementById('rsiChart'), {
+                layout: { background: { type: 'solid', color: '#161b22' }, textColor: '#8b949e' },
+                grid: { vertLines: { color: '#30363d' }, horzLines: { color: '#30363d' } },
+                timeScale: { borderColor: '#30363d', visible: false },
+                rightPriceScale: { 
+                    borderColor: '#30363d',
+                    scaleMargins: { top: 0.1, bottom: 0.1 }
+                },
+                height: 120
+            });
+            
+            rsiSeries = rsiChart.addLineSeries({
+                color: '#f0b429',
+                lineWidth: 2,
+                priceFormat: { type: 'custom', formatter: function(p) { return p.toFixed(1); } }
+            });
+            
+            // Subscribe to crosshair move for price tracking
+            chart.subscribeCrosshairMove(function(param) {
+                if (param.time && param.seriesData.get(candlestickSeries)) {
+                    const candleData = param.seriesData.get(candlestickSeries);
+                    document.getElementById('priceMain').textContent = formatPrice(candleData.close, currentSymbol);
+                }
+            });
+            
+            // Subscribe to click for drawing
+            chart.subscribeClick(function(param) {
+                handleChartClick(param);
+            });
+            
             loadChartData();
+            loadDrawings();
+        }
+        
+        // ===== INDICATOR CALCULATIONS =====
+        
+        function calculateEMA(data, period) {
+            const ema = [];
+            const multiplier = 2 / (period + 1);
+            
+            // Calculate initial SMA
+            let sum = 0;
+            for (let i = 0; i < period; i++) {
+                sum += data[i].close;
+            }
+            let prevEma = sum / period;
+            
+            ema.push({ time: data[period - 1].time, value: prevEma });
+            
+            for (let i = period; i < data.length; i++) {
+                const currentEma = (data[i].close - prevEma) * multiplier + prevEma;
+                ema.push({ time: data[i].time, value: currentEma });
+                prevEma = currentEma;
+            }
+            
+            return ema;
+        }
+        
+        function calculateSMA(data, period) {
+            const sma = [];
+            
+            for (let i = period - 1; i < data.length; i++) {
+                let sum = 0;
+                for (let j = 0; j < period; j++) {
+                    sum += data[i - j].close;
+                }
+                sma.push({ time: data[i].time, value: sum / period });
+            }
+            
+            return sma;
+        }
+        
+        function calculateRSI(data, period) {
+            const rsi = [];
+            let gains = [];
+            let losses = [];
+            
+            // Calculate price changes
+            for (let i = 1; i < data.length; i++) {
+                const change = data[i].close - data[i - 1].close;
+                gains.push(change > 0 ? change : 0);
+                losses.push(change < 0 ? Math.abs(change) : 0);
+            }
+            
+            // Calculate initial averages
+            let avgGain = 0, avgLoss = 0;
+            for (let i = 0; i < period; i++) {
+                avgGain += gains[i];
+                avgLoss += losses[i];
+            }
+            avgGain /= period;
+            avgLoss /= period;
+            
+            // First RSI value
+            let rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+            let rsiValue = 100 - (100 / (1 + rs));
+            rsi.push({ time: data[period].time, value: rsiValue });
+            
+            // Subsequent RSI values (smoothed)
+            for (let i = period; i < gains.length; i++) {
+                avgGain = (avgGain * (period - 1) + gains[i]) / period;
+                avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
+                rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+                rsiValue = 100 - (100 / (1 + rs));
+                rsi.push({ time: data[i + 1].time, value: rsiValue });
+            }
+            
+            return rsi;
+        }
+        
+        function calculateBollingerBands(data, period, stdDevMult) {
+            const bb = { upper: [], middle: [], lower: [] };
+            
+            // Calculate middle band (SMA)
+            const sma = calculateSMA(data, period);
+            
+            // Calculate standard deviation and bands
+            for (let i = period - 1; i < data.length; i++) {
+                let sum = 0;
+                for (let j = 0; j < period; j++) {
+                    sum += Math.pow(data[i - j].close - sma[i - period + 1].value, 2);
+                }
+                const stdDev = Math.sqrt(sum / period);
+                const time = data[i].time;
+                
+                bb.middle.push({ time: time, value: sma[i - period + 1].value });
+                bb.upper.push({ time: time, value: sma[i - period + 1].value + stdDevMult * stdDev });
+                bb.lower.push({ time: time, value: sma[i - period + 1].value - stdDevMult * stdDev });
+            }
+            
+            return bb;
+        }
+        
+        function changeIndicator() {
+            const indicator = document.getElementById('indicatorSelect').value;
+            const settingsDiv = document.getElementById('indicatorSettings');
+            
+            // Remove existing indicator
+            if (indicatorSeries) {
+                chart.removeSeries(indicatorSeries);
+                indicatorSeries = null;
+            }
+            rsiSeries.setData([]);
+            document.getElementById('rsiChart').style.display = 'none';
+            
+            if (!indicator) {
+                currentIndicator = null;
+                settingsDiv.style.display = 'none';
+                chart.applyOptions({ rightPriceScale: { scaleMargins: { top: 0.1, bottom: 0.2 } } });
+                return;
+            }
+            
+            currentIndicator = indicator;
+            settingsDiv.style.display = 'flex';
+            
+            // Adjust chart for RSI if needed
+            if (indicator === 'RSI') {
+                chart.applyOptions({ rightPriceScale: { scaleMargins: { top: 0.1, bottom: 0.45 } } });
+                document.getElementById('rsiChart').style.display = 'block';
+            } else {
+                chart.applyOptions({ rightPriceScale: { scaleMargins: { top: 0.1, bottom: 0.2 } } });
+            }
+            
+            updateIndicator();
+        }
+        
+        function updateIndicator() {
+            if (!currentIndicator || !indicatorData.length) return;
+            
+            const period = parseInt(document.getElementById('indicatorPeriod').value) || 14;
+            const color = document.getElementById('indicatorColor').value;
+            
+            // Remove existing
+            if (indicatorSeries) {
+                chart.removeSeries(indicatorSeries);
+            }
+            
+            let indicatorValues = [];
+            
+            if (currentIndicator === 'EMA') {
+                indicatorValues = calculateEMA(indicatorData, period);
+                indicatorSeries = chart.addLineSeries({
+                    color: color,
+                    lineWidth: 2,
+                    priceLineVisible: false
+                });
+                indicatorSeries.setData(indicatorValues);
+            } 
+            else if (currentIndicator === 'SMA') {
+                indicatorValues = calculateSMA(indicatorData, period);
+                indicatorSeries = chart.addLineSeries({
+                    color: color,
+                    lineWidth: 2,
+                    priceLineVisible: false
+                });
+                indicatorSeries.setData(indicatorValues);
+            }
+            else if (currentIndicator === 'RSI') {
+                indicatorValues = calculateRSI(indicatorData, period);
+                rsiSeries.setData(indicatorValues);
+                rsiSeries.applyOptions({ color: color });
+                
+                // Add overbought/oversold lines
+                rsiChart.addLineSeries({ color: '#f8514966', lineWidth: 1 }).setData(
+                    indicatorValues.map(v => ({ time: v.time, value: 70 }))
+                );
+                rsiChart.addLineSeries({ color: '#3fb95066', lineWidth: 1 }).setData(
+                    indicatorValues.map(v => ({ time: v.time, value: 30 }))
+                );
+            }
+            else if (currentIndicator === 'BB') {
+                const bb = calculateBollingerBands(indicatorData, period, 2);
+                
+                // Middle band
+                indicatorSeries = chart.addLineSeries({
+                    color: color,
+                    lineWidth: 1,
+                    priceLineVisible: false
+                });
+                indicatorSeries.setData(bb.middle);
+                
+                // Upper band
+                chart.addLineSeries({ color: color + '88', lineWidth: 1, priceLineVisible: false }).setData(bb.upper);
+                // Lower band
+                chart.addLineSeries({ color: color + '88', lineWidth: 1, priceLineVisible: false }).setData(bb.lower);
+                
+                indicatorValues = bb.middle;
+            }
+        }
+        
+        function removeIndicator() {
+            document.getElementById('indicatorSelect').value = '';
+            changeIndicator();
+        }
+        
+        // ===== DRAWING TOOLS =====
+        
+        function setDrawingMode(mode) {
+            // Clear previous active button
+            document.querySelectorAll('.toolbar-btn').forEach(btn => btn.classList.remove('active'));
+            
+            if (drawingMode === mode) {
+                // Toggle off
+                drawingMode = null;
+                isDrawing = false;
+                drawStartPoint = null;
+                return;
+            }
+            
+            drawingMode = mode;
+            
+            // Highlight button
+            const btnMap = { 'trendline': 'btnTrendline', 'hline': 'btnHLine', 'rectangle': 'btnRectangle', 'fibonacci': 'btnFibonacci' };
+            const btnId = btnMap[mode];
+            if (btnId) document.getElementById(btnId).classList.add('active');
+            
+            isDrawing = false;
+            drawStartPoint = null;
+        }
+        
+        function handleChartClick(param) {
+            if (!drawingMode || !param.time || !param.point) return;
+            
+            const price = candlestickSeries.coordinateToPrice(param.point.y);
+            const time = param.time;
+            
+            if (drawingMode === 'hline') {
+                // Horizontal line - single click
+                createHorizontalLine(time, price);
+            }
+            else if (drawingMode === 'trendline' || drawingMode === 'rectangle') {
+                if (!isDrawing) {
+                    // Start drawing
+                    isDrawing = true;
+                    drawStartPoint = { time, price, y: param.point.y };
+                } else {
+                    // Finish drawing
+                    isDrawing = false;
+                    if (drawingMode === 'trendline') {
+                        createTrendline(drawStartPoint, { time, price });
+                    } else if (drawingMode === 'rectangle') {
+                        createRectangle(drawStartPoint, { time, price });
+                    }
+                    drawStartPoint = null;
+                }
+            }
+            else if (drawingMode === 'fibonacci') {
+                // Fibonacci - find high/low in visible range
+                createFibonacci(time, price);
+            }
+        }
+        
+        function createHorizontalLine(time, price) {
+            const id = 'hline_' + (++lineIdCounter);
+            const line = chart.addLineSeries({
+                color: '#f0b429',
+                lineWidth: 1,
+                lineStyle: 2, // Dashed
+                priceLineVisible: false,
+                lastValueVisible: true,
+                title: 'H-Line'
+            });
+            line.setData([{ time: time, value: price }, { time: '2030-12-31', value: price }]);
+            
+            drawingsMap.set(id, line);
+            drawings.push({ id, type: 'hline', price });
+            saveDrawings();
+        }
+        
+        function createTrendline(start, end) {
+            const id = 'trendline_' + (++lineIdCounter);
+            const line = chart.addLineSeries({
+                color: '#58a6ff',
+                lineWidth: 2,
+                priceLineVisible: false
+            });
+            line.setData([{ time: start.time, value: start.price }, { time: end.time, value: end.price }]);
+            
+            drawingsMap.set(id, line);
+            drawings.push({ 
+                id, 
+                type: 'trendline', 
+                startTime: start.time, 
+                startPrice: start.price, 
+                endTime: end.time, 
+                endPrice: end.price 
+            });
+            saveDrawings();
+        }
+        
+        function createRectangle(start, end) {
+            const id = 'rect_' + (++lineIdCounter);
+            
+            // Create top and bottom lines
+            const topPrice = Math.max(start.price, end.price);
+            const bottomPrice = Math.min(start.price, end.price);
+            
+            const rect = {
+                id,
+                type: 'rectangle',
+                topLine: chart.addLineSeries({ color: '#a371f7', lineWidth: 1, priceLineVisible: false }),
+                bottomLine: chart.addLineSeries({ color: '#a371f7', lineWidth: 1, priceLineVisible: false }),
+                leftLine: chart.addLineSeries({ color: '#a371f7', lineWidth: 1, priceLineVisible: false }),
+                rightLine: chart.addLineSeries({ color: '#a371f7', lineWidth: 1, priceLineVisible: false })
+            };
+            
+            rect.topLine.setData([
+                { time: start.time, value: topPrice },
+                { time: end.time, value: topPrice }
+            ]);
+            rect.bottomLine.setData([
+                { time: start.time, value: bottomPrice },
+                { time: end.time, value: bottomPrice }
+            ]);
+            rect.leftLine.setData([
+                { time: start.time, value: topPrice },
+                { time: start.time, value: bottomPrice }
+            ]);
+            rect.rightLine.setData([
+                { time: end.time, value: topPrice },
+                { time: end.time, value: bottomPrice }
+            ]);
+            
+            drawingsMap.set(id, rect);
+            drawings.push({ 
+                id, 
+                type: 'rectangle', 
+                startTime: start.time, 
+                endTime: end.time,
+                topPrice, 
+                bottomPrice 
+            });
+            saveDrawings();
+        }
+        
+        function createFibonacci(time, currentPrice) {
+            // Get visible data range
+            const visibleRange = chart.timeScale().getVisibleRange();
+            if (!visibleRange) return;
+            
+            // Find high and low in visible range
+            let high = -Infinity, low = Infinity;
+            
+            indicatorData.forEach(candle => {
+                if (candle.time >= visibleRange.from && candle.time <= visibleRange.to) {
+                    high = Math.max(high, candle.high);
+                    low = Math.min(low, candle.low);
+                }
+            });
+            
+            if (high === -Infinity || low === Infinity) return;
+            
+            const id = 'fib_' + (++lineIdCounter);
+            const fibLines = [];
+            
+            FIB_LEVELS.forEach((level, i) => {
+                const price = high - (high - low) * level;
+                const line = chart.addLineSeries({
+                    color: FIB_COLORS[i],
+                    lineWidth: 1,
+                    lineStyle: level === 0 || level === 1 ? 0 : 2,
+                    priceLineVisible: true,
+                    lastValueVisible: false,
+                    title: 'Fib ' + (level * 100).toFixed(1) + '%'
+                });
+                
+                const startTime = visibleRange.from;
+                const endTime = visibleRange.to;
+                
+                line.setData([
+                    { time: startTime, value: price },
+                    { time: endTime, value: price }
+                ]);
+                
+                fibLines.push(line);
+            });
+            
+            drawingsMap.set(id, fibLines);
+            drawings.push({ 
+                id, 
+                type: 'fibonacci', 
+                high, 
+                low,
+                startTime: visibleRange.from,
+                endTime: visibleRange.to
+            });
+            saveDrawings();
+        }
+        
+        function drawStoredLine(drawing) {
+            // Recreate drawings from storage
+            if (drawing.type === 'hline') {
+                const line = chart.addLineSeries({
+                    color: '#f0b429',
+                    lineWidth: 1,
+                    lineStyle: 2,
+                    priceLineVisible: false,
+                    lastValueVisible: true
+                });
+                line.setData([{ time: drawing.startTime || '2024-01-01', value: drawing.price }, { time: '2030-12-31', value: drawing.price }]);
+                drawingsMap.set(drawing.id, line);
+                lineIdCounter = Math.max(lineIdCounter, parseInt(drawing.id.split('_')[1] || 0));
+            }
+            else if (drawing.type === 'trendline') {
+                const line = chart.addLineSeries({
+                    color: '#58a6ff',
+                    lineWidth: 2,
+                    priceLineVisible: false
+                });
+                line.setData([
+                    { time: drawing.startTime, value: drawing.startPrice },
+                    { time: drawing.endTime, value: drawing.endPrice }
+                ]);
+                drawingsMap.set(drawing.id, line);
+                lineIdCounter = Math.max(lineIdCounter, parseInt(drawing.id.split('_')[1] || 0));
+            }
+            else if (drawing.type === 'rectangle') {
+                const rect = {
+                    topLine: chart.addLineSeries({ color: '#a371f7', lineWidth: 1, priceLineVisible: false }),
+                    bottomLine: chart.addLineSeries({ color: '#a371f7', lineWidth: 1, priceLineVisible: false }),
+                    leftLine: chart.addLineSeries({ color: '#a371f7', lineWidth: 1, priceLineVisible: false }),
+                    rightLine: chart.addLineSeries({ color: '#a371f7', lineWidth: 1, priceLineVisible: false })
+                };
+                
+                rect.topLine.setData([
+                    { time: drawing.startTime, value: drawing.topPrice },
+                    { time: drawing.endTime, value: drawing.topPrice }
+                ]);
+                rect.bottomLine.setData([
+                    { time: drawing.startTime, value: drawing.bottomPrice },
+                    { time: drawing.endTime, value: drawing.bottomPrice }
+                ]);
+                rect.leftLine.setData([
+                    { time: drawing.startTime, value: drawing.topPrice },
+                    { time: drawing.startTime, value: drawing.bottomPrice }
+                ]);
+                rect.rightLine.setData([
+                    { time: drawing.endTime, value: drawing.topPrice },
+                    { time: drawing.endTime, value: drawing.bottomPrice }
+                ]);
+                
+                drawingsMap.set(drawing.id, rect);
+                lineIdCounter = Math.max(lineIdCounter, parseInt(drawing.id.split('_')[1] || 0));
+            }
+            else if (drawing.type === 'fibonacci') {
+                const fibLines = [];
+                FIB_LEVELS.forEach((level, i) => {
+                    const price = drawing.high - (drawing.high - drawing.low) * level;
+                    const line = chart.addLineSeries({
+                        color: FIB_COLORS[i],
+                        lineWidth: 1,
+                        lineStyle: level === 0 || level === 1 ? 0 : 2,
+                        priceLineVisible: true,
+                        lastValueVisible: false
+                    });
+                    line.setData([
+                        { time: drawing.startTime, value: price },
+                        { time: drawing.endTime, value: price }
+                    ]);
+                    fibLines.push(line);
+                });
+                drawingsMap.set(drawing.id, fibLines);
+                lineIdCounter = Math.max(lineIdCounter, parseInt(drawing.id.split('_')[1] || 0));
+            }
+        }
+        
+        function clearDrawings() {
+            // Remove all drawings from chart
+            drawings.forEach(d => {
+                const obj = drawingsMap.get(d.id);
+                if (obj) {
+                    if (Array.isArray(obj)) {
+                        obj.forEach(line => chart.removeSeries(line));
+                    } else if (obj.topLine) {
+                        // Rectangle
+                        chart.removeSeries(obj.topLine);
+                        chart.removeSeries(obj.bottomLine);
+                        chart.removeSeries(obj.leftLine);
+                        chart.removeSeries(obj.rightLine);
+                    } else {
+                        chart.removeSeries(obj);
+                    }
+                }
+            });
+            
+            drawings = [];
+            drawingsMap.clear();
+            saveDrawings();
+            
+            // Reset drawing mode
+            drawingMode = null;
+            isDrawing = false;
+            drawStartPoint = null;
+            document.querySelectorAll('.toolbar-btn').forEach(btn => btn.classList.remove('active'));
         }
         
         async function loadChartData() {
@@ -520,6 +1302,7 @@
                 
                 if (data.candles) {
                     candlestickSeries.setData(data.candles);
+                    indicatorData = data.candles;
                     
                     if (data.candles.length > 0) {
                         const last = data.candles[data.candles.length - 1];
@@ -531,6 +1314,16 @@
                         changeEl.textContent = (change >= 0 ? '+' : '') + change + '%';
                         changeEl.className = 'price-change ' + (change >= 0 ? 'up' : 'down');
                     }
+                    
+                    // Reapply indicator if active
+                    if (currentIndicator) {
+                        updateIndicator();
+                    }
+                    
+                    // Reload drawings for new symbol
+                    drawings = [];
+                    drawingsMap.clear();
+                    loadDrawings();
                 }
             } catch (e) { console.error('Error loading chart:', e); }
         }
@@ -553,7 +1346,76 @@
         }
         
         setInterval(loadChartData, 30000);
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            chart.resize(document.getElementById('chart').clientWidth, document.getElementById('chart').clientHeight);
+            rsiChart.resize(document.getElementById('rsiChart').clientWidth, 120);
+        });
+        
         initChart();
+    </script>
+    <script>
+        // Theme Toggle Functionality
+        function toggleTheme() {
+            const body = document.body;
+            const icon = document.querySelector('.theme-toggle i');
+            
+            body.classList.toggle('light-theme');
+            
+            // Save preference to localStorage
+            const isLight = body.classList.contains('light-theme');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            
+            // Update icon
+            if (isLight) {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+            
+            // Update chart colors
+            updateChartTheme(isLight);
+        }
+        
+        // Update chart theme colors
+        function updateChartTheme(isLight) {
+            const bgColor = isLight ? '#ffffff' : '#161b22';
+            const textColor = isLight ? '#59636e' : '#8b949e';
+            const gridColor = isLight ? '#d0d7de' : '#30363d';
+            
+            if (chart) {
+                chart.applyOptions({
+                    layout: { background: { type: 'solid', color: bgColor }, textColor: textColor },
+                    grid: { vertLines: { color: gridColor }, horzLines: { color: gridColor } }
+                });
+            }
+            if (rsiChart) {
+                rsiChart.applyOptions({
+                    layout: { background: { type: 'solid', color: bgColor }, textColor: textColor },
+                    grid: { vertLines: { color: gridColor }, horzLines: { color: gridColor } }
+                });
+            }
+        }
+        
+        // Apply saved theme on page load
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            const body = document.body;
+            const icon = document.querySelector('.theme-toggle i');
+            
+            if (savedTheme === 'light') {
+                body.classList.add('light-theme');
+                if (icon) {
+                    icon.classList.remove('fa-moon');
+                    icon.classList.add('fa-sun');
+                }
+                // Apply chart theme after charts are initialized
+                setTimeout(() => updateChartTheme(true), 100);
+            }
+        })();
     </script>
 </body>
 </html>

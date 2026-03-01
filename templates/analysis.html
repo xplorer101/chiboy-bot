@@ -20,6 +20,25 @@
             --accent-purple: #a371f7;
         }
         
+        /* Light Theme */
+        body.light-theme {
+            --bg-dark: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f0f2f5;
+            --border-color: #d0d7de;
+        }
+        
+        body.light-theme .card {
+            background: var(--bg-card);
+            border-color: var(--border-color);
+        }
+        
+        body.light-theme .table {
+            --bs-table-bg: var(--bg-card);
+            --bs-table-color: var(--text-primary);
+            --bs-table-border-color: var(--border-color);
+        }
+        
         * { box-sizing: border-box; }
         
         body {
@@ -787,6 +806,15 @@
                 analyzeSymbol('GBP_USD');
             }
         }, 500);
+    </script>
+    <script>
+        // Apply saved theme on page load
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-theme');
+            }
+        })();
     </script>
 </body>
 </html>

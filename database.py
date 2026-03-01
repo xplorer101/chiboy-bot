@@ -65,6 +65,34 @@ def init_database():
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_signals_symbol ON signals(symbol)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_signals_created_at ON signals(created_at)')
         
+        # Backtest results table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS backtest_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                symbol TEXT NOT NULL,
+                timeframe TEXT NOT NULL,
+                strategy TEXT NOT NULL,
+                start_date TEXT NOT NULL,
+                end_date TEXT NOT NULL,
+                initial_balance REAL NOT NULL,
+                final_balance REAL NOT NULL,
+                total_trades INTEGER NOT NULL,
+                wins INTEGER NOT NULL,
+                losses INTEGER NOT NULL,
+                win_rate REAL NOT NULL,
+                total_pnl REAL NOT NULL,
+                total_pnl_pct REAL NOT NULL,
+                avg_win REAL,
+                avg_loss REAL,
+                max_drawdown_pct REAL,
+                sharpe_ratio REAL,
+                trades_json TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        ''')
+        
         print("Database initialized successfully!")
 
 
@@ -151,6 +179,52 @@ def get_signals(user_id=None, symbol=None, start_date=None, end_date=None, limit
         if end_date:
             query += ' AND created_at <= ?'
             params.append(end_date)
+        
+        query += ' ORDER BY created_at DESC LIMIT ?'
+        params.append(limit)
+        
+        cursor.execute(query, params)
+        return cursor.fetchall()
+
+
+def save_backtest_result(user_id, symbol, timeframe, strategy, start_date, end_date,
+                         initial_balance, final_balance, total_trades, wins, losses,
+                         win_rate, total_pnl, total_pnl_pct, avg_win, avg_loss,
+                         max_drawdown_pct, sharpe_ratio, trades_json):
+    """Save backtest result to database"""
+    import json
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            '''INSERT INTO backtest_results 
+               (user_id, symbol, timeframe, strategy, start_date, end_date,
+                initial_balance, final_balance, total_trades, wins, losses,
+                win_rate, total_pnl, total_pnl_pct, avg_win, avg_loss,
+                max_drawdown_pct, sharpe_ratio, trades_json)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+            (user_id, symbol, timeframe, strategy, start_date, end_date,
+             initial_balance, final_balance, total_trades, wins, losses,
+             win_rate, total_pnl, total_pnl_pct, avg_win, avg_loss,
+             max_drawdown_pct, sharpe_ratio, json.dumps(trades_json))
+        )
+        return cursor.lastrowid
+
+
+def get_backtest_results(user_id=None, symbol=None, limit=20):
+    """Get backtest results"""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        
+        query = 'SELECT * FROM backtest_results WHERE 1=1'
+        params = []
+        
+        if user_id:
+            query += ' AND user_id = ?'
+            params.append(user_id)
+        
+        if symbol:
+            query += ' AND symbol = ?'
+            params.append(symbol)
         
         query += ' ORDER BY created_at DESC LIMIT ?'
         params.append(limit)
