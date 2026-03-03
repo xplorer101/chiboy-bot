@@ -93,6 +93,27 @@ def init_database():
             )
         ''')
         
+        # Saved opportunities table (persists until manually cleared)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS saved_opportunities (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                symbol TEXT NOT NULL,
+                asset_type TEXT NOT NULL,
+                direction TEXT NOT NULL,
+                timeframe TEXT NOT NULL,
+                entry_price REAL NOT NULL,
+                sl REAL NOT NULL,
+                tp REAL NOT NULL,
+                confidence REAL,
+                reasons TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        ''')
+        
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_saved_opp_user_id ON saved_opportunities(user_id)')
+        
         print("Database initialized successfully!")
 
 
@@ -231,6 +252,64 @@ def get_backtest_results(user_id=None, symbol=None, limit=20):
         
         cursor.execute(query, params)
         return cursor.fetchall()
+
+
+def save_opportunity(user_id, symbol, asset_type, direction, timeframe, entry_price, sl, tp, confidence=0, reasons=""):
+    """Save an opportunity to the watchlist"""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            '''INSERT INTO saved_opportunities 
+               (user_id, symbol, asset_type, direction, timeframe, entry_price, sl, tp, confidence, reasons)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+            (user_id, symbol, asset_type, direction, timeframe, entry_price, sl, tp, confidence, reasons)
+        )
+        return cursor.lastrowid
+
+
+def get_saved_opportunities(user_id=None, symbol=None, limit=50):
+    """Get saved opportunities (watchlist)"""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        
+        query = 'SELECT * FROM saved_opportunities WHERE 1=1'
+        params = []
+        
+        if user_id:
+            query += ' AND user_id = ?'
+            params.append(user_id)
+        
+        if symbol:
+            query += ' AND symbol = ?'
+            params.append(symbol)
+        
+        query += ' ORDER BY created_at DESC LIMIT ?'
+        params.append(limit)
+        
+        cursor.execute(query, params)
+        return cursor.fetchall()
+
+
+def clear_saved_opportunities(user_id=None):
+    """Clear all saved opportunities (manual clear)"""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        if user_id:
+            cursor.execute('DELETE FROM saved_opportunities WHERE user_id = ?', (user_id,))
+        else:
+            cursor.execute('DELETE FROM saved_opportunities')
+        return cursor.rowcount
+
+
+def delete_saved_opportunity(opp_id, user_id=None):
+    """Delete a specific saved opportunity"""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        if user_id:
+            cursor.execute('DELETE FROM saved_opportunities WHERE id = ? AND user_id = ?', (opp_id, user_id))
+        else:
+            cursor.execute('DELETE FROM saved_opportunities WHERE id = ?', (opp_id,))
+        return cursor.rowcount
 
 
 # Initialize database on import

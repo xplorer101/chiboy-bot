@@ -8,24 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            --bg-dark: #0d1117;
-            --bg-card: #161b22;
-            --bg-card-hover: #1c2128;
-            --border-color: #30363d;
-            --text-primary: #ffffff;
-            --text-secondary: #c9d1d9;
-            --text-muted: #8b949e;
-            --accent-green: #3fb950;
-            --accent-red: #f85149;
-            --accent-blue: #58a6ff;
-            --accent-purple: #a371f7;
-            --accent-gold: #f0b429;
-            --accent-cyan: #39d0d6;
-        }
-        
-        /* Light Theme */
-        body.light-theme {
+body.light-theme {
             --bg-dark: #f5f7fa;
             --bg-card: #ffffff;
             --bg-card-hover: #f0f2f5;
@@ -40,11 +23,29 @@
             background: var(--bg-card);
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
+
+body.light-theme .menu-bar {
+    background: var(--bg-card);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.menu-bar {
+            background: var(--bg-card);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        
+        body.light-theme .hero {
+            background: linear-gradient(180deg, rgba(240,180,41,0.15) 0%, transparent 100%);
+        }
         
         body.light-theme .card {
             background: var(--bg-card);
             border-color: var(--border-color);
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        
+        body.light-theme .stat-card {
+            background: var(--bg-card);
+            border-color: var(--border-color);
         }
         
         body.light-theme input, 
@@ -61,36 +62,18 @@
             --bs-table-border-color: var(--border-color);
         }
         
+        body.light-theme .btn-outline-primary {
+            color: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+        
         body.light-theme .menu-link:hover {
             background: rgba(0,0,0,0.05);
         }
         
-        .theme-toggle {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-muted);
-            padding: 0.4rem 0.6rem;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 1rem;
-            margin-left: auto;
-        }
-        
-        .theme-toggle:hover {
-            background: rgba(255,255,255,0.1);
-            color: var(--accent-gold);
-            border-color: var(--accent-gold);
-        }
-        
-        body.light-theme .theme-toggle {
-            background: rgba(0,0,0,0.05);
+        body.light-theme .mobile-menu {
+            background: var(--bg-card);
             border-color: var(--border-color);
-        }
-        
-        body.light-theme .theme-toggle:hover {
-            background: rgba(240,180,41,0.15);
-            color: var(--accent-gold);
         }
         
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -104,18 +87,20 @@
             background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1318 50%, var(--bg-dark) 100%);
         }
         
-        /* Menu Bar */
+        /* Menu Bar - Mission Control Style */
         .menu-bar {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            height: 60px;
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border-color);
+            height: 64px;
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             display: flex;
             align-items: center;
-            padding: 0 1.5rem;
+            padding: 0 2rem;
             z-index: 1000;
         }
         
@@ -126,20 +111,32 @@
             margin-right: 2rem;
         }
         
-        .menu-brand i {
-            font-size: 1.5rem;
-            color: var(--accent-gold);
+        .menu-brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent-gold), #d4a020);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
         }
         
         .menu-brand span {
             font-size: 1.25rem;
             font-weight: 700;
-            color: var(--accent-gold);
+            background: linear-gradient(135deg, var(--accent-gold), #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
         .menu-nav {
             display: flex;
-            gap: 0.5rem;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 4px;
+            border-radius: 12px;
             flex: 1;
         }
         
@@ -147,17 +144,18 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.5rem 1rem;
+            padding: 0.625rem 1.25rem;
             border-radius: 8px;
-            color: var(--text-muted);
+            color: rgba(255, 255, 255, 0.6);
             text-decoration: none;
-            font-size: 0.9rem;
-            transition: all 0.2s;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .menu-link:hover {
-            background: rgba(255,255,255,0.05);
             color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
         }
         
         .menu-link.active {
@@ -165,7 +163,7 @@
             color: #000;
         }
         
-        .menu-link i { font-size: 1rem; }
+        .menu-link i { font-size: 0.9rem; }
         
         .menu-status {
             display: flex;
@@ -183,10 +181,32 @@
             animation: pulse 2s infinite;
         }
         
+        
+        :root {
+            --bg-dark: #0d1117;
+            --bg-card: #161b22;
+            --bg-card-hover: #1c2128;
+            --border-color: #30363d;
+            --text-primary: #ffffff;
+            --text-secondary: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent-green: #3fb950;
+            --accent-red: #f85149;
+            --accent-blue: #58a6ff;
+            --accent-purple: #a371f7;
+            --accent-gold: #f0b429;
+            --accent-cyan: #39d0d6;
+        }
+        
+        /* Light Theme */
+        
+        
+        
+        
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         
         /* Main Content */
-        .main { padding-top: 80px; padding-bottom: 2rem; padding-left: 1.5rem; padding-right: 1.5rem; }
+        .main { padding-top: 70px; padding-bottom: 2rem; padding-left: 1.5rem; padding-right: 1.5rem; }
         
         /* Page Header */
         .page-header {
@@ -524,23 +544,23 @@
     </style>
 </head>
 <body>
-
-    <!-- Top Menu Bar -->
-    <nav class="menu-bar">
+<nav class="menu-bar">
         <div class="menu-brand">
-            <i class="fas fa-chart-line"></i>
+            <div class="menu-brand-icon">🎯</div>
             <span>CHIBOY</span>
         </div>
         <div class="menu-nav">
             <a href="/" class="menu-link"><i class="fas fa-home"></i> Dashboard</a>
             <a href="/opportunities" class="menu-link"><i class="fas fa-bullseye"></i> Opportunities</a>
-            <a href="/analysis" class="menu-link"><i class="fas fa-search"></i> Analysis</a>
+            <a href="/analysis" class="menu-link"><i class="fas fa-chart-line"></i> Analysis</a>
+            <a href="/signals" class="menu-link"><i class="fas fa-signal"></i> Signals</a>
             <a href="/sentiment" class="menu-link"><i class="fas fa-fire"></i> Sentiment</a>
-            <a href="/trades" class="menu-link"><i class="fas fa-history"></i> Trades</a>
+            <a href="/calendar" class="menu-link"><i class="fas fa-calendar"></i> Calendar</a>
+            <a href="/backtest" class="menu-link"><i class="fas fa-flask"></i> Backtest</a>
             <a href="/risk" class="menu-link active"><i class="fas fa-shield-alt"></i> Risk</a>
         </div>
         <div class="menu-status">
-            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.5rem; border-radius: 8px;">
                 <i class="fas fa-moon"></i>
             </button>
             <span class="live-dot"></span>
@@ -548,7 +568,10 @@
         </div>
     </nav>
 
-    <div class="main">
+
+    <!-- Top Menu Bar -->
+
+    <div class="main" style="padding-top: 70px;">
         <!-- Page Header -->
         <div class="page-header">
             <h1 class="page-title">
@@ -922,6 +945,21 @@
                     icon.classList.add('fa-sun');
                 }
             }
+        })();
+    </script>
+<script>
+        // Highlight active menu link
+        (function() {
+            var path = window.location.pathname;
+            if (path === '/') path = '/';
+            document.querySelectorAll('.menu-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                if (href === path || (path === '/' && href === '/')) {
+                    link.classList.add('active');
+                } else if (path.startsWith(href) && href !== '/') {
+                    link.classList.add('active');
+                }
+            });
         })();
     </script>
 </body>

@@ -751,6 +751,8 @@ def signals_page():
 @app.route('/api/signals', methods=['GET'])
 def api_signals():
     """Get signal history"""
+    # Use default user_id if not logged in
+    user_id = session.get('user_id', 1)
     
     symbol = request.args.get('symbol', '')
     start_date = request.args.get('start_date', '')
@@ -789,6 +791,8 @@ def api_signals():
 @app.route('/api/signals', methods=['POST'])
 def api_save_signal():
     """Save a new signal"""
+    # Use default user_id if not logged in
+    user_id = session.get('user_id', 1)
     data = request.json
     
     signal_id = database.save_signal(
@@ -806,6 +810,85 @@ def api_save_signal():
     return jsonify({
         'success': True,
         'signal_id': signal_id
+    })
+
+
+@app.route('/api/saved-opportunities', methods=['GET'])
+def api_get_saved_opportunities():
+    """Get saved opportunities (watchlist)"""
+    # Use default user_id if not logged in
+    current_user_id = session.get('user_id', 1)
+    opportunities = database.get_saved_opportunities(user_id=current_user_id)
+    
+    opp_list = []
+    for o in opportunities:
+        opp_list.append({
+            'id': o['id'],
+            'symbol': o['symbol'],
+            'asset_type': o['asset_type'],
+            'direction': o['direction'],
+            'timeframe': o['timeframe'],
+            'entry_price': o['entry_price'],
+            'sl': o['sl'],
+            'tp': o['tp'],
+            'confidence': o['confidence'],
+            'reasons': o['reasons'],
+            'created_at': o['created_at']
+        })
+    
+    return jsonify({
+        'success': True,
+        'opportunities': opp_list,
+        'count': len(opp_list)
+    })
+
+
+@app.route('/api/saved-opportunities', methods=['POST'])
+def api_save_opportunity():
+    """Save an opportunity to watchlist"""
+    data = request.json
+    current_user_id = session.get('user_id', 1)
+    
+    opp_id = database.save_opportunity(
+        user_id=current_user_id,
+        symbol=data.get('symbol'),
+        asset_type=data.get('asset_type', 'forex'),
+        direction=data.get('direction'),
+        timeframe=data.get('timeframe', '15m'),
+        entry_price=float(data.get('entry_price', 0)),
+        sl=float(data.get('sl', 0)),
+        tp=float(data.get('tp', 0)),
+        confidence=float(data.get('confidence', 0)),
+        reasons=data.get('reasons', '')
+    )
+    
+    return jsonify({
+        'success': True,
+        'opportunity_id': opp_id
+    })
+
+
+@app.route('/api/saved-opportunities/clear', methods=['POST'])
+def api_clear_saved_opportunities():
+    """Clear all saved opportunities (manual clear)"""
+    current_user_id = session.get('user_id', 1)
+    count = database.clear_saved_opportunities(user_id=current_user_id)
+    
+    return jsonify({
+        'success': True,
+        'cleared': count
+    })
+
+
+@app.route('/api/saved-opportunities/<int:opp_id>', methods=['DELETE'])
+def api_delete_saved_opportunity(opp_id):
+    """Delete a specific saved opportunity"""
+    current_user_id = session.get('user_id', 1)
+    count = database.delete_saved_opportunity(opp_id, user_id=current_user_id)
+    
+    return jsonify({
+        'success': True,
+        'deleted': count
     })
 
 # Store analysis results
@@ -1540,7 +1623,7 @@ def api_close_trade(trade_id):
     return jsonify({"success": False, "error": "Trade not found"}), 404
 
 
-@app.route('/trades')
+#@app.route('/trades')
 def trades_page():
     """Trade history page"""
     return render_template('trades.html')

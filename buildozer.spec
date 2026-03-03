@@ -11,6 +11,7 @@ package.domain = org.chiboy
 
 # (str) Source code where the main.py live
 source.dir = .
+source.source_dir = .
 
 # (list) Source files to include (let empty to include all the files)
 source.include_exts = py,png,jpg,kv,atlas
@@ -121,7 +122,7 @@ fullscreen = 0
 # android.accept_sdk_license = False
 
 # (str) Android entry point, default is ok for Kivy-based app
-#android.entrypoint = org.kivy.android.PythonActivity
+android.entrypoint = android_app.py
 
 # (str) Full name including package path of the Java class that implements Android Activity
 # use that parameter together with android.entrypoint to set custom Java class instead of PythonActivity

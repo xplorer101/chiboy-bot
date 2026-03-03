@@ -8,6 +8,118 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+body.light-theme {
+            --bg-dark: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f0f2f5;
+            --border-color: #d0d7de;
+            --text-primary: #1f2328;
+            --text-secondary: #59636e;
+            --text-muted: #8b949e;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #e8eaed 50%, var(--bg-dark) 100%);
+        }
+        
+        body.light-theme .menu-bar {
+            background: var(--bg-card);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+/* Menu Bar - Mission Control Style */
+        .menu-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            padding: 0 2rem;
+            z-index: 1000;
+        }
+        
+        .menu-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-right: 2rem;
+        }
+        
+        .menu-brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent-gold), #d4a020);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+        
+        .menu-brand span {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-gold), #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .menu-nav {
+            display: flex;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 4px;
+            border-radius: 12px;
+            flex: 1;
+        }
+        
+        .menu-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .menu-link:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .menu-link.active {
+            background: var(--accent-gold);
+            color: #000;
+        }
+        
+        .menu-link i { font-size: 0.9rem; }
+        
+        .menu-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
         :root {
             --bg-dark: #0d1117;
             --bg-card: #161b22;
@@ -21,12 +133,7 @@
         }
         
         /* Light Theme */
-        body.light-theme {
-            --bg-dark: #f5f7fa;
-            --bg-card: #ffffff;
-            --bg-card-hover: #f0f2f5;
-            --border-color: #d0d7de;
-        }
+        
         
         body.light-theme .card {
             background: var(--bg-card);
@@ -47,7 +154,7 @@
             font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
             min-height: 100vh;
             margin: 0;
-            padding-left: 80px;
+            ;
         }
         
         
@@ -356,26 +463,41 @@
         .side-link i { font-size: 1.3rem; margin-bottom: 0.25rem; }
         .side-link:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
         .side-link.active { background: var(--accent-gold); color: #000; }
-        body { padding-left: 70px; }
+        body { ; }
 
     </style>
 </head>
 <body>
-
-    <nav class="side-nav">
-        <div class="side-brand"><i class="fas fa-chart-line"></i></div>
-        <div class="side-links">
-            <a href="/" class="side-link"><i class="fas fa-home"></i>Home</a>
-            <a href="/opportunities" class="side-link"><i class="fas fa-bullseye"></i>Opps</a>
-            <a href="/analysis" class="side-link"><i class="fas fa-search"></i>Analysis</a>
-            <a href="/sentiment" class="side-link"><i class="fas fa-fire"></i>Sentiment</a>
-            <a href="/trades" class="side-link"><i class="fas fa-history"></i>Trades</a>
+<nav class="menu-bar">
+        <div class="menu-brand">
+            <div class="menu-brand-icon">🎯</div>
+            <span>CHIBOY</span>
+        </div>
+        <div class="menu-nav">
+            <a href="/" class="menu-link"><i class="fas fa-home"></i> Dashboard</a>
+            <a href="/opportunities" class="menu-link"><i class="fas fa-bullseye"></i> Opportunities</a>
+            <a href="/analysis" class="menu-link active"><i class="fas fa-chart-line"></i> Analysis</a>
+            <a href="/signals" class="menu-link"><i class="fas fa-signal"></i> Signals</a>
+            <a href="/sentiment" class="menu-link"><i class="fas fa-fire"></i> Sentiment</a>
+            <a href="/calendar" class="menu-link"><i class="fas fa-calendar"></i> Calendar</a>
+            <a href="/backtest" class="menu-link"><i class="fas fa-flask"></i> Backtest</a>
+            <a href="/risk" class="menu-link"><i class="fas fa-shield-alt"></i> Risk</a>
+        </div>
+        <div class="menu-status">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.5rem; border-radius: 8px;">
+                <i class="fas fa-moon"></i>
+            </button>
+            <span class="live-dot"></span>
+            <span>Live</span>
         </div>
     </nav>
+
+
+    
     <!-- Sidebar -->
 
     <!-- Main Content -->
-    <div class="main-content">
+    <div class="main-content" style="padding-top: 70px;">
         <div class="top-bar">
             <span style="color: #fff; font-weight: 600;">Market Analysis</span>
             <div style="display: flex; align-items: center; gap: 0.75rem;">
@@ -482,6 +604,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function toggleTheme() { document.body.classList.toggle("light-theme"); localStorage.setItem("theme", document.body.classList.contains("light-theme") ? "light" : "dark"); }
+
         let currentSymbol = 'GBP_USD';
         let notificationsEnabled = false;
 
@@ -651,6 +775,9 @@
                 const ict = data.ict || {};
                 const signal = ict.signal;
                 
+                // Store current signal for saving
+                currentSignal = { signal, ict, symbol: currentSymbol, timeframe: currentTimeframe };
+                
                 if (signal) {
                     // Show browser notification for new signal
                     notifySignal(signal);
@@ -705,9 +832,14 @@
                                     <li>🎯 Entry at Order Block / FVG</li>
                                 </ul>
                             </div>
-                            <button class="btn btn-primary mt-3" onclick="openTrade()">
-                                <i class="fas fa-play me-2"></i>Execute Trade
-                            </button>
+                            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                                <button class="btn btn-primary" onclick="saveToSignals()" style="flex: 1;">
+                                    <i class="fas fa-save me-2"></i>Save to Signals
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="openTrade()" style="flex: 1;">
+                                    <i class="fas fa-play me-2"></i>Execute Trade
+                                </button>
+                            </div>
                         </div>
                     `;
                 } else {
@@ -737,8 +869,47 @@
             }
         }
 
+        // Store current signal for saving
+        let currentSignal = null;
+        
         function openTrade() {
             window.location.href = '/';
+        }
+        
+        async function saveToSignals() {
+            if (!currentSignal || !currentSignal.signal) {
+                alert('No valid signal to save!');
+                return;
+            }
+            
+            const signal = currentSignal.signal;
+            const symbol = currentSymbol;
+            
+            try {
+                const response = await fetch('/api/signals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        timeframe: currentTimeframe,
+                        direction: signal.direction,
+                        entry_price: signal.entry_price,
+                        sl: signal.stop_loss,
+                        tp: signal.take_profit,
+                        confidence: signal.confidence || 80,
+                        reasons: signal.reasons ? signal.reasons.join(', ') : 'ICT Signal'
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Signal saved to Signal History!');
+                } else {
+                    alert('Error saving signal: ' + (result.error || 'Unknown error'));
+                }
+            } catch (e) {
+                alert('Error saving signal: ' + e.message);
+            }
         }
 
         // Update only prices (for fast auto-refresh)
@@ -808,12 +979,31 @@
         }, 500);
     </script>
     <script>
+        function toggleTheme() { document.body.classList.toggle("light-theme"); localStorage.setItem("theme", document.body.classList.contains("light-theme") ? "light" : "dark"); }
+
         // Apply saved theme on page load
         (function() {
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme === 'light') {
                 document.body.classList.add('light-theme');
             }
+        })();
+    </script>
+<script>
+        function toggleTheme() { document.body.classList.toggle("light-theme"); localStorage.setItem("theme", document.body.classList.contains("light-theme") ? "light" : "dark"); }
+
+        // Highlight active menu link
+        (function() {
+            var path = window.location.pathname;
+            if (path === '/') path = '/';
+            document.querySelectorAll('.menu-link').forEach(function(link) {
+                var href = link.getAttribute('href');
+                if (href === path || (path === '/' && href === '/')) {
+                    link.classList.add('active');
+                } else if (path.startsWith(href) && href !== '/') {
+                    link.classList.add('active');
+                }
+            });
         })();
     </script>
 </body>

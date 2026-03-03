@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHIBOY BOT - Economic Calendar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --bg-card: #161b22;
+            --bg-card-hover: #21262d;
+            --border-color: #30363d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent-gold: #f0b429;
+            --accent-green: #3fb950;
+            --accent-red: #f85149;
+            --accent-blue: #58a6ff;
+        }
+        
+        body.light-theme {
+            --bg-dark: #f5f7fa;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f0f2f5;
+            --border-color: #d0d7de;
+            --text-primary: #1f2328;
+            --text-secondary: #59636e;
+            --text-muted: #8b949e;
+        }
+        
+        body.light-theme .menu-bar {
+            background: var(--bg-card);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        
+        /* Menu Bar - Mission Control Style */
+        .menu-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            padding: 0 2rem;
+            z-index: 1000;
+        }
+        
+        .menu-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-right: 2rem;
+        }
+        
+        .menu-brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent-gold), #d4a020);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+        
+        .menu-brand span {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-gold), #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .menu-nav {
+            display: flex;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 4px;
+            border-radius: 12px;
+            flex: 1;
+        }
+        
+        .menu-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .menu-link:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .menu-link.active {
+            background: var(--accent-gold);
+            color: #000;
+        }
+        
+        .menu-link i { font-size: 0.9rem; }
+        
+        .menu-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1318 50%, var(--bg-dark) 100%);
+        }
+        
+        .main {
+            padding-top: 84px;
+            padding-bottom: 2rem;
+            padding-left: 2rem;
+            padding-right: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .page-title i {
+            color: var(--accent-gold);
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+        
+        .btn-refresh {
+            background: var(--accent-gold);
+            color: #000;
+            border: none;
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        
+        .btn-refresh:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(240, 180, 41, 0.3);
+        }
+        
+        .btn-refresh i.spin {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .filter-label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+        
+        .filter-select {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+        
+        .impact-filters {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .impact-btn {
+            padding: 0.375rem 0.75rem;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .impact-btn.active {
+            border-color: transparent;
+        }
+        
+        .impact-btn.high.active {
+            background: var(--accent-red);
+            color: #fff;
+        }
+        
+        .impact-btn.medium.active {
+            background: var(--accent-gold);
+            color: #000;
+        }
+        
+        .impact-btn.low.active {
+            background: var(--accent-green);
+            color: #fff;
+        }
+        
+        /* Calendar Grid */
+        .calendar-grid {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .day-section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+        
+        .day-header {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .day-date {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-primary);
+        }
+        
+        .day-date i {
+            margin-right: 0.5rem;
+            color: var(--accent-gold);
+        }
+        
+        .day-count {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+        
+        .events-list {
+            padding: 0.5rem;
+        }
+        
+        .event-card {
+            display: grid;
+            grid-template-columns: 80px 60px 1fr auto auto auto;
+            gap: 1rem;
+            align-items: center;
+            padding: 1rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        
+        .event-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-color);
+        }
+        
+        .event-time {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        
+        .currency-badge {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: #fff;
+        }
+        
+        .currency-USD { background: linear-gradient(135deg, #1a73e8, #0d47a1); }
+        .currency-EUR { background: linear-gradient(135deg, #1565c0, #0d47a1); }
+        .currency-GBP { background: linear-gradient(135deg, #c62828, #b71c1c); }
+        .currency-JPY { background: linear-gradient(135deg, #ff6f00, #e65100); }
+        .currency-AUD { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
+        .currency-CAD { background: linear-gradient(135deg, #c62828, #b71c1c); }
+        .currency-CHF { background: linear-gradient(135deg, #6a1b9a, #4a148c); }
+        .currency-NZD { background: linear-gradient(135deg, #00695c, #004d40); }
+        
+        .event-name {
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.9375rem;
+        }
+        
+        .impact-badge {
+            padding: 0.25rem 0.625rem;
+            border-radius: 4px;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .impact-high {
+            background: rgba(248, 81, 73, 0.15);
+            color: var(--accent-red);
+        }
+        
+        .impact-medium {
+            background: rgba(240, 180, 41, 0.15);
+            color: var(--accent-gold);
+        }
+        
+        .impact-low {
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--accent-green);
+        }
+        
+        .forecast, .actual {
+            font-size: 0.875rem;
+            font-weight: 600;
+            min-width: 70px;
+            text-align: right;
+        }
+        
+        .forecast {
+            color: var(--text-secondary);
+        }
+        
+        .actual {
+            color: var(--text-primary);
+        }
+        
+        .actual.released {
+            color: var(--accent-green);
+        }
+        
+        .actual.missed {
+            color: var(--accent-red);
+        }
+        
+        .actual.beat {
+            color: var(--accent-green);
+        }
+        
+        /* Loading & Empty States */
+        .loading, .empty {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+        
+        .loading i {
+            font-size: 2rem;
+            color: var(--accent-gold);
+            margin-bottom: 1rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .event-card {
+                grid-template-columns: 70px 50px 1fr;
+                gap: 0.75rem;
+            }
+            .impact-badge, .forecast, .actual {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .menu-nav { display: none; }
+            .main { padding: 1rem; }
+            .page-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .filters { flex-direction: column; }
+        }
+        
+        /* Mobile Nav */
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-color);
+            padding: 0.5rem;
+            z-index: 1000;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-nav { display: flex; justify-content: space-around; }
+            .main { padding-bottom: 5rem; }
+        }
+        
+        .mobile-nav a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.625rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .mobile-nav a.active {
+            color: var(--accent-gold);
+        }
+        
+        .mobile-nav a i {
+            font-size: 1.25rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Menu Bar -->
+    <nav class="menu-bar">
+        <div class="menu-brand">
+            <div class="menu-brand-icon">🎯</div>
+            <span>CHIBOY</span>
+        </div>
+        <div class="menu-nav">
+            <a href="/" class="menu-link"><i class="fas fa-home"></i> Dashboard</a>
+            <a href="/opportunities" class="menu-link"><i class="fas fa-bullseye"></i> Opportunities</a>
+            <a href="/analysis" class="menu-link"><i class="fas fa-chart-line"></i> Analysis</a>
+            <a href="/signals" class="menu-link"><i class="fas fa-signal"></i> Signals</a>
+            <a href="/sentiment" class="menu-link"><i class="fas fa-fire"></i> Sentiment</a>
+            <a href="/calendar" class="menu-link active"><i class="fas fa-calendar"></i> Calendar</a>
+            <a href="/backtest" class="menu-link"><i class="fas fa-flask"></i> Backtest</a>
+            <a href="/risk" class="menu-link"><i class="fas fa-shield-alt"></i> Risk</a>
+        </div>
+        <div class="menu-status">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.5rem; border-radius: 8px;">
+                <i class="fas fa-moon"></i>
+            </button>
+            <span class="live-dot"></span>
+            <span>Live</span>
+        </div>
+    </nav>
+    
+    <div class="main">
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-calendar-alt"></i>
+                Economic Calendar
+            </h1>
+            <div class="header-actions">
+                <button class="btn-refresh" onclick="loadCalendar()">
+                    <i class="fas fa-sync-alt" id="refreshIcon"></i>
+                    Refresh
+                </button>
+            </div>
+        </div>
+        
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <span class="filter-label">Impact:</span>
+                <div class="impact-filters">
+                    <button class="impact-btn high active" data-impact="high" onclick="toggleImpact('high')">High</button>
+                    <button class="impact-btn medium active" data-impact="medium" onclick="toggleImpact('medium')">Medium</button>
+                    <button class="impact-btn low active" data-impact="low" onclick="toggleImpact('low')">Low</button>
+                </div>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">Currency:</span>
+                <select class="filter-select" id="currencyFilter" onchange="loadCalendar()">
+                    <option value="">All Currencies</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="JPY">JPY</option>
+                    <option value="AUD">AUD</option>
+                    <option value="CAD">CAD</option>
+                    <option value="CHF">CHF</option>
+                    <option value="NZD">NZD</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Calendar Grid -->
+        <div class="calendar-grid" id="calendarGrid">
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading economic calendar...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Mobile Navigation -->
+    <div class="mobile-nav">
+        <a href="/"><i class="fas fa-home"></i>Home</a>
+        <a href="/opportunities"><i class="fas fa-bullseye"></i>Opp</a>
+        <a href="/analysis"><i class="fas fa-chart-line"></i>Analysis</a>
+        <a href="/calendar"><i class="fas fa-calendar"></i>Calendar</a>
+        <a href="/risk"><i class="fas fa-shield-alt"></i>Risk</a>
+    </div>
+    
+    <script>
+        let allEvents = [];
+        let activeImpacts = { high: true, medium: true, low: true };
+        
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+            localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
+        }
+        
+        // Apply saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') document.body.classList.add('light-theme');
+        
+        function toggleImpact(impact) {
+            activeImpacts[impact] = !activeImpacts[impact];
+            document.querySelector(`.impact-btn.${impact}`).classList.toggle('active');
+            renderCalendar();
+        }
+        
+        async function loadCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const refreshIcon = document.getElementById('refreshIcon');
+            refreshIcon.classList.add('spin');
+            
+            grid.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Loading economic calendar...</p></div>';
+            
+            try {
+                const currency = document.getElementById('currencyFilter').value;
+                let url = '/api/economic-calendar';
+                if (currency) url += `?currency=${currency}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    allEvents = data.events || [];
+                    renderCalendar();
+                } else {
+                    grid.innerHTML = '<div class="empty"><i class="fas fa-exclamation-triangle"></i><p>Error loading calendar</p></div>';
+                }
+            } catch (e) {
+                console.error('Error:', e);
+                grid.innerHTML = '<div class="empty"><i class="fas fa-exclamation-triangle"></i><p>Error loading calendar</p></div>';
+            }
+            
+            refreshIcon.classList.remove('spin');
+        }
+        
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            
+            // Filter events
+            const filtered = allEvents.filter(e => activeImpacts[e.impact]);
+            
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div class="empty"><i class="fas fa-calendar-times"></i><p>No events match your filters</p></div>';
+                return;
+            }
+            
+            // Group by date
+            const grouped = {};
+            filtered.forEach(e => {
+                if (!grouped[e.date]) grouped[e.date] = [];
+                grouped[e.date].push(e);
+            });
+            
+            // Sort dates
+            const sortedDates = Object.keys(grouped).sort();
+            
+            let html = '';
+            sortedDates.forEach(date => {
+                const events = grouped[date];
+                const dateObj = new Date(date);
+                const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+                const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                
+                html += `
+                    <div class="day-section">
+                        <div class="day-header">
+                            <span class="day-date"><i class="fas fa-calendar-day"></i>${dayName}, ${dateStr}</span>
+                            <span class="day-count">${events.length} event${events.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div class="events-list">
+                            ${events.map(renderEvent).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            grid.innerHTML = html;
+        }
+        
+        function renderEvent(event) {
+            const currencyClass = `currency-${event.currency}`;
+            
+            return `
+                <div class="event-card">
+                    <span class="event-time">${event.time}</span>
+                    <div class="currency-badge ${currencyClass}">${event.currency}</div>
+                    <span class="event-name">${event.event}</span>
+                    <span class="impact-badge impact-${event.impact}">${event.impact}</span>
+                    <span class="forecast">${event.forecast || '-'}</span>
+                    <span class="actual ${event.actual !== '-' ? 'released' : ''}">${event.actual}</span>
+                </div>
+            `;
+        }
+        
+        // Load on page load
+        loadCalendar();
+        
+        // Auto-refresh every 5 minutes
+        setInterval(loadCalendar, 5 * 60 * 1000);
+    </script>
+</body>
+</html>

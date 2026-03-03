@@ -96,18 +96,20 @@
             background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1318 50%, var(--bg-dark) 100%);
         }
         
-        /* Menu Bar */
+        /* Menu Bar - Mission Control Style */
         .menu-bar {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            height: 60px;
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border-color);
+            height: 64px;
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             display: flex;
             align-items: center;
-            padding: 0 1.5rem;
+            padding: 0 2rem;
             z-index: 1000;
         }
         
@@ -118,20 +120,32 @@
             margin-right: 2rem;
         }
         
-        .menu-brand i {
-            font-size: 1.5rem;
-            color: var(--accent-gold);
+        .menu-brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent-gold), #d4a020);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
         }
         
         .menu-brand span {
             font-size: 1.25rem;
             font-weight: 700;
-            color: var(--accent-gold);
+            background: linear-gradient(135deg, var(--accent-gold), #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
         .menu-nav {
             display: flex;
-            gap: 0.5rem;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 4px;
+            border-radius: 12px;
             flex: 1;
         }
         
@@ -139,17 +153,18 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.5rem 1rem;
+            padding: 0.625rem 1.25rem;
             border-radius: 8px;
-            color: var(--text-muted);
+            color: rgba(255, 255, 255, 0.6);
             text-decoration: none;
-            font-size: 0.9rem;
-            transition: all 0.2s;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .menu-link:hover {
-            background: rgba(255,255,255,0.05);
             color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
         }
         
         .menu-link.active {
@@ -157,7 +172,7 @@
             color: #000;
         }
         
-        .menu-link i { font-size: 1rem; }
+        .menu-link i { font-size: 0.9rem; }
         
         .menu-status {
             display: flex;
@@ -178,7 +193,7 @@
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         
         /* Main Content */
-        .main { padding-top: 80px; padding-bottom: 2rem; padding-left: 1.5rem; padding-right: 1.5rem; }
+        .main { padding-top: 84px; padding-bottom: 2rem; padding-left: 1.5rem; padding-right: 1.5rem; }
         
         @media (max-width: 768px) {
             .menu-nav { display: none; }
@@ -397,26 +412,44 @@
         .footer { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem; }
         .footer a { color: var(--accent-gold); text-decoration: none; }
     
-        /* Top Menu Bar */
+        /* Top Menu Bar - Mission Control Style */
         .menu-bar {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            height: 60px;
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border-color);
+            height: 64px;
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             display: flex;
             align-items: center;
-            padding: 0 1.5rem;
+            padding: 0 2rem;
             z-index: 1000;
         }
         
         .menu-brand { display: flex; align-items: center; gap: 0.75rem; margin-right: 2rem; }
-        .menu-brand i { font-size: 1.5rem; color: var(--accent-gold); }
-        .menu-brand span { font-size: 1.25rem; font-weight: 700; color: var(--accent-gold); }
+        .menu-brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent-gold), #d4a020);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+        .menu-brand span {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-gold), #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
         
-        .menu-nav { display: flex; gap: 0.5rem; flex: 1; }
+        .menu-nav { display: flex; gap: 4px; background: rgba(255, 255, 255, 0.03); padding: 4px; border-radius: 12px; flex: 1; }
         
         .menu-link {
             display: flex;
@@ -465,28 +498,30 @@
         .live-dot { width: 8px; height: 8px; background: var(--accent-green); border-radius: 50%; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         
-        body { padding-top: 60px; }
+        body { padding: 1rem; }
 
     </style>
 </head>
 <body>
 
-    <!-- Top Menu Bar -->
+    <!-- Top Menu Bar - Mission Control Style -->
     <nav class="menu-bar">
         <div class="menu-brand">
-            <i class="fas fa-chart-line"></i>
+            <div class="menu-brand-icon">🎯</div>
             <span>CHIBOY</span>
         </div>
         <div class="menu-nav">
             <a href="/" class="menu-link active"><i class="fas fa-home"></i> Dashboard</a>
             <a href="/opportunities" class="menu-link"><i class="fas fa-bullseye"></i> Opportunities</a>
-            <a href="/analysis" class="menu-link"><i class="fas fa-search"></i> Analysis</a>
+            <a href="/analysis" class="menu-link"><i class="fas fa-chart-line"></i> Analysis</a>
+            <a href="/signals" class="menu-link"><i class="fas fa-signal"></i> Signals</a>
             <a href="/sentiment" class="menu-link"><i class="fas fa-fire"></i> Sentiment</a>
-            <a href="/trades" class="menu-link"><i class="fas fa-history"></i> Trades</a>
+            <a href="/calendar" class="menu-link"><i class="fas fa-calendar"></i> Calendar</a>
+            <a href="/backtest" class="menu-link"><i class="fas fa-flask"></i> Backtest</a>
             <a href="/risk" class="menu-link"><i class="fas fa-shield-alt"></i> Risk</a>
         </div>
         <div class="menu-status">
-            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: all 0.2s;">
                 <i class="fas fa-moon"></i>
             </button>
             <span class="live-dot"></span>
@@ -501,7 +536,7 @@
     </button>
     
     
-    <div class="main">
+    <div class="main" style="padding-top: 84px;">
         <!-- Hero -->
         <div class="hero">
             <div class="hero-logo">📈</div>
